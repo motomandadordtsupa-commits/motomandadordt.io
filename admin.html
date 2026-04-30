@@ -128,9 +128,13 @@
                 <div style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; margin-top:5px;">Clientes</div>
             </div>
             <div class="card" style="text-align:center; padding: 15px;">
-                <div id="a-ingresos" style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); line-height:1;">$0</div>
-                <div style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; margin-top:5px;">Ingresos (Entregados)</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-accent-success);" id="a-ingresos">$0</div>
+                <div style="font-size: 0.65rem; color: var(--color-text-muted); text-transform: uppercase; margin-top: 5px;">Ingresos (Entregados)</div>
             </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+            <button onclick="cleanupGhostOrders()" style="background:rgba(239, 68, 68, 0.1); border:1px solid var(--color-accent-error); color:var(--color-accent-error); padding:6px 12px; border-radius:6px; font-size:0.7rem; cursor:pointer; font-weight:700;">🧹 LIMPIAR PEDIDOS COLGADOS</button>
         </div>
 
         <div class="card" style="margin-bottom: 20px;">
@@ -213,6 +217,26 @@
             loadClients();
             loadRecentOrders();
             subscribeRealtime();
+        }
+
+        async function cancelOrderAdmin(orderId) {
+            if (confirm("¿Seguro que deseas cancelar este pedido desde el panel admin?")) {
+                const { error } = await sb.from('pedidos').update({ estado: 'cancelado' }).eq('id', orderId);
+                if (error) alert(error.message);
+                else loadRecentOrders();
+            }
+        }
+
+        async function cleanupGhostOrders() {
+            if (confirm("¿Deseas eliminar todos los pedidos PENDIENTES de hace más de 1 hora?")) {
+                const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+                const { error } = await sb.from('pedidos').delete().eq('estado', 'pendiente').lt('created_at', oneHourAgo);
+                if (error) alert(error.message);
+                else {
+                    alert("Limpieza completada.");
+                    loadRecentOrders();
+                }
+            }
         }
 
         async function loadConfig() {
@@ -381,6 +405,9 @@
                                         ${o.estado.toUpperCase()}
                                         ${o.estado === 'pendiente' && o.asignado_a ? '<br><small style="color:var(--color-accent-warning);">Asignado: Esperando...</small>' : ''}
                                     </span>
+                                </td>
+                                <td>
+                                    ${o.estado !== 'entregado' && o.estado !== 'cancelado' ? `<button onclick="cancelOrderAdmin('${o.id}')" style="background:none; border:none; color:var(--color-accent-error); cursor:pointer; font-size:0.8rem;">❌</button>` : ''}
                                 </td>
                             </tr>
                         `).join('')}

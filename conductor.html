@@ -480,10 +480,17 @@
                     if (payload.new.estado === 'pendiente') {
                         mostrarAlertaAsignacion(payload.new);
                     }
+                    // Si el pedido se cancela mientras estoy asignado o en viaje
+                    if (payload.new.estado === 'cancelado') {
+                        alert("⚠️ El pedido ha sido cancelado.");
+                        document.getElementById('modal-asignacion').classList.add('hidden');
+                        checkActiveOrder();
+                    }
                 })
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pedidos', filter: `asignado_a=eq.${currentUser.id}` }, payload => {
                     mostrarAlertaAsignacion(payload.new);
                 })
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes' }, loadMessages)
                 .subscribe();
         }
 
@@ -536,16 +543,9 @@
             activeOrder = null;
         }
 
-        // CHAT (Same logic as client but different side)
+        // CHAT
         async function loadMessages() {
             if(!activeOrder) return;
-            const { data } = await sb.from('mensajes_chat').select('*').eq('id_pedido', activeOrder.id).order('created_at', { ascending: true });
-            const chatBox = document.getElementById('chat-messages');
-            chatBox.innerHTML = data.map(m => `
-                <div class="message ${m.remitente_id === currentUser.id ? 'message--moto' : 'message--client'}">
-                    ${m.contenido}
-                </div>
-            `).join('');
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
