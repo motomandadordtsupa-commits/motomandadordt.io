@@ -127,14 +127,32 @@
                 <div id="a-clientes" style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); line-height:1;">0</div>
                 <div style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; margin-top:5px;">Clientes</div>
             </div>
-            <div class="card" style="text-align:center; padding: 15px;">
-                <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-accent-success);" id="a-ingresos">$0</div>
-                <div style="font-size: 0.65rem; color: var(--color-text-muted); text-transform: uppercase; margin-top: 5px;">Ingresos (Entregados)</div>
+            <div class="card" style="text-align:center; padding: 15px; border: 1px solid var(--color-accent-primary);">
+                <div id="a-ingresos" style="font-size: 1.5rem; font-weight: 700; color: var(--color-accent-success);">$0</div>
+                <div style="font-size: 0.65rem; color: var(--color-text-muted); text-transform: uppercase; margin-top: 5px;">Ingresos Hoy</div>
+                <button onclick="prepararCierreTurno()" style="margin-top:10px; width:100%; padding:8px; background:var(--color-accent-primary); color:var(--color-bg-primary); border:none; border-radius:5px; font-weight:700; font-size:0.7rem; cursor:pointer;">CERRAR TURNO Y REPORTE</button>
             </div>
         </div>
 
-        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+        <!-- MANTENIMIENTO -->
+        <div class="card" style="margin-bottom:20px; border: 1px solid rgba(239, 68, 68, 0.3);">
+            <h3 style="font-size:0.8rem; color:var(--color-accent-error); margin-bottom:10px;">🛠️ ZONA DE MANTENIMIENTO (CRÍTICO)</h3>
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                <button onclick="backupDatabase()" style="padding:10px; background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.1); border-radius:5px; font-size:0.65rem; cursor:pointer;">📥 BACKUP JSON</button>
+                <button onclick="document.getElementById('input-restore').click()" style="padding:10px; background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.1); border-radius:5px; font-size:0.65rem; cursor:pointer;">📤 RESTAURAR</button>
+                <button onclick="zeroizeDatabase()" style="padding:10px; background:rgba(239, 68, 68, 0.2); color:var(--color-accent-error); border:1px solid var(--color-accent-error); border-radius:5px; font-size:0.65rem; cursor:pointer; font-weight:700;">🔥 ZEROIZE (BORRAR TODO)</button>
+            </div>
+            <input type="file" id="input-restore" class="hidden" accept=".json" onchange="restoreDatabase(this)">
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <button onclick="toggleCierresHistory()" style="background:transparent; border:none; color:var(--color-text-muted); font-size:0.7rem; text-decoration:underline; cursor:pointer;">Ver Historial de Cierres</button>
             <button onclick="cleanupGhostOrders()" style="background:rgba(239, 68, 68, 0.1); border:1px solid var(--color-accent-error); color:var(--color-accent-error); padding:6px 12px; border-radius:6px; font-size:0.7rem; cursor:pointer; font-weight:700;">🧹 LIMPIAR PEDIDOS COLGADOS</button>
+        </div>
+
+        <div id="section-cierres-history" class="hidden card" style="margin-bottom:20px; max-height:300px; overflow-y:auto;">
+            <h3 style="font-size:0.9rem; margin-bottom:10px;">Historial de Cierres de Turno</h3>
+            <div id="cierres-list"></div>
         </div>
 
         <div class="card" style="margin-bottom: 20px;">
@@ -183,7 +201,17 @@
         </div>
     </div>
 
-    <script>
+    <!-- Modal Cierre de Turno -->
+    <div id="modal-cierre" class="modal hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9000; display:flex; align-items:center; justify-content:center;">
+        <div class="card" style="width:90%; max-width:500px; padding:2rem;">
+            <h2 style="color:var(--color-accent-primary); text-align:center;">RESUMEN DE CIERRE</h2>
+            <div id="cierre-detalle" style="margin:20px 0; font-size:0.85rem; max-height:300px; overflow-y:auto;"></div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="confirmarCierreTurno()" class="button button--primary" style="flex:1; padding:12px;">CONFIRMAR Y GUARDAR</button>
+                <button onclick="document.getElementById('modal-cierre').classList.add('hidden')" style="flex:1; background:transparent; color:white; border:1px solid white; border-radius:5px;">CANCELAR</button>
+            </div>
+        </div>
+    </div>
         const SUPABASE_URL = 'https://aodoaefxnnpgjwcyfixx.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_RRSZspZq5acSI3J_eT4HUg_Txykyu2S';
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -440,6 +468,173 @@
             location.reload();
         };
 
+        // CIERRE DE TURNO Y REPORTES
+        let resumenActual = null;
+
+        async function prepararCierreTurno() {
+            const hoy = new Date().toISOString().split('T')[0];
+            const { data: pedidos } = await sb
+                .from('pedidos')
+                .select('*, motomandado:PERFILES!motomandado_id(nombre_completo)')
+                .eq('estado', 'entregado')
+                .gte('created_at', hoy);
+
+            if (!pedidos || pedidos.length === 0) return alert("No hay viajes entregados hoy para cerrar el turno.");
+
+            const totalViajes = pedidos.length;
+            const totalRecaudado = pedidos.reduce((acc, p) => acc + (p.monto || 0), 0);
+            
+            const porChofer = {};
+            pedidos.forEach(p => {
+                const nom = p.motomandado ? p.motomandado.nombre_completo : 'Desconocido';
+                if (!porChofer[nom]) porChofer[nom] = { viajes: 0, monto: 0 };
+                porChofer[nom].viajes++;
+                porChofer[nom].monto += (p.monto || 0);
+            });
+
+            resumenActual = { totalViajes, totalRecaudado, porChofer, pedidos };
+
+            let html = `
+                <div style="border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; margin-bottom:10px;">
+                    <p>Total Viajes: <strong>${totalViajes}</strong></p>
+                    <p>Recaudación Total: <strong style="color:var(--color-accent-success);">$${totalRecaudado}</strong></p>
+                </div>
+                <h4 style="margin-bottom:5px;">Detalle por Chofer:</h4>
+            `;
+
+            for (const nom in porChofer) {
+                html += `<p>${nom}: ${porChofer[nom].viajes} viajes - $${porChofer[nom].monto}</p>`;
+            }
+
+            document.getElementById('cierre-detalle').innerHTML = html;
+            document.getElementById('modal-cierre').classList.remove('hidden');
+        }
+
+        async function confirmarCierreTurno() {
+            if (!resumenActual) return;
+            const { error } = await sb.from('cierres_turno').insert({
+                total_viajes: resumenActual.totalViajes,
+                recaudacion_total: resumenActual.totalRecaudado,
+                detalles: resumenActual,
+                cerrado_por: currentUser.id
+            });
+            if (error) return alert("Error al guardar cierre: " + error.message);
+            generarArchivoReporte(resumenActual);
+            alert("Cierre guardado y reporte generado.");
+            document.getElementById('modal-cierre').classList.add('hidden');
+            loadCierresHistory();
+        }
+
+        function generarArchivoReporte(res) {
+            let txt = `INFORME DE CIERRE - MOTOMANDADOR RDT\nFecha: ${new Date().toLocaleString()}\n`;
+            txt += `-------------------------------------------\nTOTAL VIAJES: ${res.totalViajes}\nTOTAL RECAUDADO: $${res.totalRecaudado}\n\n`;
+            txt += `DETALLE POR CHOFER:\n`;
+            for (const nom in res.porChofer) txt += `- ${nom}: ${res.porChofer[nom].viajes} viajes | $${res.porChofer[nom].monto}\n`;
+            const blob = new Blob([txt], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Cierre_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+        }
+
+        async function loadCierresHistory() {
+            const { data } = await sb.from('cierres_turno').select('*').order('fecha', { ascending: false }).limit(10);
+            const cont = document.getElementById('cierres-list');
+            if (!data || data.length === 0) return cont.innerHTML = "<p style='font-size:0.7rem;'>Sin cierres.</p>";
+            cont.innerHTML = data.map(c => `
+                <div style="padding:10px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                    <div style="font-size:0.7rem;">${new Date(c.fecha).toLocaleString()} - $${c.recaudacion_total}</div>
+                    <button onclick='descargarCierreExistente(${JSON.stringify(c.detalles)})' style="background:var(--color-accent-primary); border:none; border-radius:4px; padding:4px; font-size:0.6rem;">⬇️</button>
+                </div>
+            `).join('');
+        }
+
+        function descargarCierreExistente(det) { generarArchivoReporte(det); }
+        function toggleCierresHistory() { document.getElementById('section-cierres-history').classList.toggle('hidden'); loadCierresHistory(); }
+
+        // BACKUP, RESTORE & ZEROIZE
+        async function backupDatabase() {
+            try {
+                const tables = ['PERFILES', 'pedidos', 'configuracion', 'mensajes', 'cierres_turno'];
+                const backupData = {};
+                
+                for (const table of tables) {
+                    const { data } = await sb.from(table).select('*');
+                    backupData[table] = data;
+                }
+
+                const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Backup_Motomandado_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                alert("Backup descargado con éxito.");
+            } catch (e) {
+                alert("Error en backup: " + e.message);
+            }
+        }
+
+        async function restoreDatabase(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            if (!confirm("¿Seguro que deseas RESTAURAR los datos? Esto podría duplicar o sobrescribir información actual.")) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    for (const table in data) {
+                        if (data[table] && data[table].length > 0) {
+                            const { error } = await sb.from(table).upsert(data[table]);
+                            if (error) console.warn(`Error restaurando tabla ${table}:`, error);
+                        }
+                    }
+                    alert("Restauración completada. La página se recargará.");
+                    location.reload();
+                } catch (err) {
+                    alert("Error al procesar archivo: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function zeroizeDatabase() {
+            const pass = prompt("🛑 ¡ATENCIÓN! Estás a punto de BORRAR TODA LA BASE DE DATOS.\n\nPara continuar, escribe tu contraseña de administrador:");
+            if (!pass) return;
+
+            // Verificación simple re-haciendo login (o simplemente confiando si ya es admin, 
+            // pero el usuario pidió que solicite clave)
+            const { error: authError } = await sb.auth.signInWithPassword({
+                email: currentUser.email,
+                password: pass
+            });
+
+            if (authError) return alert("Contraseña incorrecta. Acción cancelada.");
+
+            if (!confirm("ÚLTIMA ADVERTENCIA: Se borrarán pedidos, mensajes, cierres y conductores. ¿Proceder?")) return;
+
+            try {
+                // Borrar en orden para respetar FKs
+                await sb.from('mensajes').delete().neq('id', 0);
+                await sb.from('cierres_turno').delete().neq('id', 0);
+                await sb.from('pedidos').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                await sb.from('PERFILES').delete().neq('id', currentUser.id); // Borrar todos menos a mí
+
+                alert("Base de datos reseteada (Zeroize completo).");
+                location.reload();
+            } catch (err) {
+                alert("Error en Zeroize: " + err.message);
+            }
+        }
+
+        loadConfig();
+        loadFinance();
+        loadDrivers();
+        loadRecentOrders();
+        loadCierresHistory();
         checkAdmin();
     </script>
 </body>
