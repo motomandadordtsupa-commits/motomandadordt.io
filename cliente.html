@@ -180,7 +180,24 @@
                 </div>
                 <button class="button button--primary button--block" id="btn-login">Ingresar</button>
                 <p style="text-align: center; font-size: 0.8rem; color: var(--color-text-muted);">
-                    ¿No tienes cuenta? <a href="#" id="link-signup" style="color: var(--color-accent-primary);">Regístrate</a>
+                    ¿No tienes cuenta? <a href="#" id="link-show-register" style="color: var(--color-accent-primary);">Regístrate</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="client-register-modal" class="modal hidden">
+        <div class="card" style="width: 100%; max-width: 400px;">
+            <h2 class="header__title">Registro de Cliente</h2>
+            <p style="font-size: 0.8rem; margin-bottom: var(--spacing-md);">Crea tu cuenta para pedir motos</p>
+            <div class="form">
+                <input type="text" id="reg-name" placeholder="Nombre Completo" style="padding:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
+                <input type="tel" id="reg-phone" placeholder="Teléfono" style="padding:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
+                <input type="email" id="reg-email" placeholder="Email" style="padding:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
+                <input type="password" id="reg-pass" placeholder="Contraseña" style="padding:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
+                <button class="button button--primary button--block" id="btn-register-client">Crear Cuenta</button>
+                <p style="text-align: center; font-size: 0.8rem; color: var(--color-text-muted); margin-top: 10px;">
+                    <a href="#" id="link-back-login" style="color: var(--color-text-muted);">Cancelar</a>
                 </p>
             </div>
         </div>
@@ -245,7 +262,10 @@
             if (session) {
                 currentUser = session.user;
                 document.getElementById('auth-modal').classList.add('hidden');
-                checkProfile();
+                document.getElementById('client-register-modal').classList.add('hidden');
+                
+                await checkProfile(session);
+                
                 loadOrders();
                 subscribeToChanges();
             }
@@ -259,20 +279,44 @@
             else checkSession();
         };
 
-        document.getElementById('link-signup').onclick = async (e) => {
+        document.getElementById('link-show-register').onclick = (e) => {
             e.preventDefault();
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-pass').value;
-            if (!email || !password) return alert("Ingresa tu email y contraseña primero.");
+            document.getElementById('auth-modal').classList.add('hidden');
+            document.getElementById('client-register-modal').classList.remove('hidden');
+        };
 
-            const { data, error } = await sb.auth.signUp({ email, password });
+        document.getElementById('link-back-login').onclick = (e) => {
+            e.preventDefault();
+            document.getElementById('client-register-modal').classList.add('hidden');
+            document.getElementById('auth-modal').classList.remove('hidden');
+        };
+
+        document.getElementById('btn-register-client').onclick = async () => {
+            const name = document.getElementById('reg-name').value;
+            const phone = document.getElementById('reg-phone').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-pass').value;
+
+            if (!name || !phone || !email || !password) {
+                return alert("Por favor completa todos los campos.");
+            }
+
+            const { data, error } = await sb.auth.signUp({ 
+                email, 
+                password,
+                options: {
+                    data: {
+                        nombre_completo: name,
+                        telefono: phone,
+                        role: 'cliente'
+                    }
+                }
+            });
             if (error) return alert("Error: " + error.message);
             
-            if (data.user) {
-                currentUser = data.user;
-                document.getElementById('auth-modal').classList.add('hidden');
-                document.getElementById('profile-modal').classList.remove('hidden');
-            }
+            alert("¡Registro exitoso! Por favor, verifica tu correo electrónico antes de iniciar sesión.");
+            document.getElementById('client-register-modal').classList.add('hidden');
+            document.getElementById('auth-modal').classList.remove('hidden');
         };
 
         document.getElementById('btn-logout').onclick = async () => {
@@ -281,15 +325,32 @@
         };
 
         // PROFILE LOGIC
-        async function checkProfile() {
-            const { data, error } = await sb
+        async function checkProfile(session) {
+            let { data, error } = await sb
                 .from('PERFILES')
                 .select('*')
                 .eq('id', currentUser.id)
                 .single();
             
+            // Auto-crear perfil si el registro dejó datos en user_metadata
+            if (!data && session.user.user_metadata && session.user.user_metadata.role === 'cliente') {
+                const meta = session.user.user_metadata;
+                const { error: insertErr } = await sb.from('PERFILES').insert({
+                    id: currentUser.id,
+                    nombre_completo: meta.nombre_completo,
+                    telefono: meta.telefono,
+                    role: meta.role,
+                    esta_activo: true
+                });
+                if (!insertErr) {
+                    data = { role: meta.role }; // Mocking para pasar la verificación visual
+                }
+            }
+
             if (!data) {
                 document.getElementById('profile-modal').classList.remove('hidden');
+            } else {
+                document.getElementById('profile-modal').classList.add('hidden');
             }
         }
 
@@ -309,10 +370,7 @@
                 alert(error.message);
             } else {
                 document.getElementById('profile-modal').classList.add('hidden');
-                alert("¡Perfil creado con éxito! Iniciando sesión...");
-                const email = document.getElementById('auth-email').value;
-                const password = document.getElementById('auth-pass').value;
-                await sb.auth.signInWithPassword({ email, password });
+                alert("¡Perfil completado con éxito!");
                 checkSession();
             }
         };

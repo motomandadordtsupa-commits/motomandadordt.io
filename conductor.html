@@ -173,19 +173,21 @@
             <input type="email" id="email" placeholder="Tu Email" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
             <input type="password" id="pass" placeholder="Tu Contraseña" style="width:100%; padding:10px; margin-bottom:20px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
             <button onclick="loginDriver()" style="width:100%; padding:10px; background:var(--gradient-primary); color:white; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">ENTRAR</button>
-            <button onclick="registerDriver()" style="margin-top:15px; background:none; border:none; color:var(--color-text-muted); cursor:pointer;">¿Nuevo? Registrate acá</button>
+            <button onclick="showRegister()" style="margin-top:15px; background:none; border:none; color:var(--color-text-muted); cursor:pointer;">¿Nuevo? Registrate acá</button>
         </div>
     </div>
 
     <!-- Modal de Registro Conductor -->
     <div id="driver-register-modal" class="modal hidden">
         <div class="card" style="max-width:400px; padding:2rem; width:100%; background: var(--color-bg-secondary); border-radius:1rem; text-align:center; border: 1px solid rgba(255,255,255,0.05);">
-            <h2 style="margin-bottom: 10px;">Completa tu Perfil</h2>
-            <p style="color:var(--color-text-muted); margin-bottom: 20px; font-size: 0.85rem;">Ingresá tus datos para que el admin te habilite.</p>
+            <h2 style="margin-bottom: 10px;">Registro de Conductor</h2>
+            <p style="color:var(--color-text-muted); margin-bottom: 20px; font-size: 0.85rem;">Ingresá tus datos para crear tu cuenta.</p>
             <input type="text" id="reg-name" placeholder="Nombre Completo" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
-            <input type="tel" id="reg-phone" placeholder="Teléfono" style="width:100%; padding:10px; margin-bottom:20px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
-            <button onclick="saveDriverProfile()" style="width:100%; padding:10px; background:var(--color-accent-success); color:white; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">ENVIAR REGISTRO</button>
-            <button onclick="location.reload()" style="margin-top:15px; background:none; border:none; color:var(--color-text-muted); cursor:pointer;">Cancelar</button>
+            <input type="tel" id="reg-phone" placeholder="Teléfono" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
+            <input type="email" id="reg-email" placeholder="Email" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
+            <input type="password" id="reg-pass" placeholder="Contraseña" style="width:100%; padding:10px; margin-bottom:20px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
+            <button onclick="registerDriver()" style="width:100%; padding:10px; background:var(--color-accent-success); color:white; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">ENVIAR REGISTRO</button>
+            <button onclick="showLogin()" style="margin-top:15px; background:none; border:none; color:var(--color-text-muted); cursor:pointer;">Cancelar</button>
         </div>
     </div>
 
@@ -258,16 +260,32 @@
             
             if (session) {
                 currentUser = session.user;
-                const { data: profile } = await sb
+                let { data: profile } = await sb
                     .from('PERFILES')
-                    .select('role') // Asegurate que se llame 'role' como en la DB
+                    .select('role')
                     .eq('id', session.user.id)
                     .single();
 
+                // Si no hay perfil, crearlo automáticamente leyendo los datos guardados en el registro (user_metadata)
+                if (!profile && session.user.user_metadata && session.user.user_metadata.role === 'repartidor') {
+                    const meta = session.user.user_metadata;
+                    const { error } = await sb.from('PERFILES').insert({
+                        id: session.user.id,
+                        nombre_completo: meta.nombre_completo,
+                        telefono: meta.telefono,
+                        role: meta.role,
+                        esta_activo: false
+                    });
+                    if (!error) {
+                        profile = { role: meta.role };
+                    }
+                }
+
                 if (profile && profile.role === 'repartidor') {
                     document.getElementById('driver-auth').classList.add('hidden');
+                    document.getElementById('driver-register-modal').classList.add('hidden');
                     document.getElementById('driver-content').classList.remove('hidden');
-                    initConductor(); // Tu función para cargar pedidos
+                    initConductor();
                 } else if (profile && profile.role === 'admin') {
                     alert("Estás logueado como Admin. Salí e ingresá con cuenta de conductor.");
                     await sb.auth.signOut();
@@ -278,8 +296,8 @@
                     location.reload();
                 }
             } else {
-                document.getElementById('driver-auth').classList.remove('hidden');
                 document.getElementById('driver-content').classList.add('hidden');
+                showLogin();
             }
         }
 
@@ -413,42 +431,42 @@
                 .subscribe();
         }
 
-        let pendingRegisterUserId = null;
-
-        async function registerDriver() {
-            const email = document.getElementById('email').value;
-            const pass = document.getElementById('pass').value;
-            
-            if (!email || !pass) {
-                return alert("Ingresa un email y contraseña en el formulario antes de registrarte.");
-            }
-
-            const { data, error } = await sb.auth.signUp({ email, password: pass });
-            if (error) return alert("Error: " + error.message);
-            
-            if (data.user) {
-                pendingRegisterUserId = data.user.id;
-                document.getElementById('driver-auth').classList.add('hidden');
-                document.getElementById('driver-register-modal').classList.remove('hidden');
-            }
+        function showRegister() {
+            document.getElementById('driver-auth').classList.add('hidden');
+            document.getElementById('driver-register-modal').classList.remove('hidden');
         }
 
-        async function saveDriverProfile() {
+        function showLogin() {
+            document.getElementById('driver-register-modal').classList.add('hidden');
+            document.getElementById('driver-auth').classList.remove('hidden');
+        }
+
+        async function registerDriver() {
+            const email = document.getElementById('reg-email').value;
+            const pass = document.getElementById('reg-pass').value;
             const name = document.getElementById('reg-name').value;
             const phone = document.getElementById('reg-phone').value;
-            if(!name || !phone) return alert("Por favor completa tu nombre y teléfono");
-
-            const { error } = await sb.from('PERFILES').insert([
-                { id: pendingRegisterUserId, nombre_completo: name, role: 'repartidor', telefono: phone, esta_activo: false }
-            ]);
-
-            if (error) {
-                alert("Error: " + error.message);
-            } else {
-                alert("Registro enviado con éxito. El administrador debe activarte para poder acceder.");
-                await sb.auth.signOut();
-                location.reload();
+            
+            if (!email || !pass || !name || !phone) {
+                return alert("Por favor completa todos los campos del formulario.");
             }
+
+            const { data, error } = await sb.auth.signUp({ 
+                email, 
+                password: pass,
+                options: {
+                    data: {
+                        nombre_completo: name,
+                        telefono: phone,
+                        role: 'repartidor'
+                    }
+                }
+            });
+            
+            if (error) return alert("Error: " + error.message);
+            
+            alert("¡Registro exitoso! Por favor, verifica tu correo electrónico antes de iniciar sesión.");
+            showLogin();
         }
 
         async function loginDriver() {
