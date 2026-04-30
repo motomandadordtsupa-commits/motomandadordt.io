@@ -99,9 +99,10 @@
                 <label class="form__label" style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Email Admin</label>
                 <input type="email" id="email" placeholder="admin@motomandado.com" style="width:100%;">
             </div>
-            <div class="form__group" style="text-align:left; margin-bottom: 25px;">
+            <div class="form__group" style="text-align:left; margin-bottom: 25px; position:relative;">
                 <label class="form__label" style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Contraseña</label>
-                <input type="password" id="pass" placeholder="***" style="width:100%;">
+                <input type="password" id="pass" placeholder="***" style="width:100%; padding-right: 40px;">
+                <button type="button" onclick="togglePass()" style="position:absolute; right:10px; top:28px; background:none; border:none; color:var(--color-text-muted); cursor:pointer; font-size:1.1rem; padding: 5px;">👁️</button>
             </div>
             <button id="btn-login-admin" class="button button--primary" style="width:100%; padding:12px;">INICIAR SESIÓN</button>
         </div>
@@ -461,12 +462,25 @@
         }
 
         document.getElementById('btn-login-admin').onclick = async () => {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('pass').value;
-            const { error } = await sb.auth.signInWithPassword({ email, password });
-            if (error) alert(error.message);
-            else checkAdmin();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('pass').value.trim();
+            
+            if (!email || !password) return alert("Por favor, completa ambos campos.");
+
+            const { data, error } = await sb.auth.signInWithPassword({ email, password });
+            if (error) {
+                console.error("Error de login:", error);
+                alert("Error: " + error.message);
+            } else {
+                console.log("Login exitoso:", data);
+                checkAdmin();
+            }
         };
+
+        function togglePass() {
+            const p = document.getElementById('pass');
+            p.type = p.type === 'password' ? 'text' : 'password';
+        }
 
         document.getElementById('btn-logout').onclick = async () => {
             await sb.auth.signOut();

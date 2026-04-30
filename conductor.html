@@ -329,7 +329,7 @@
                     .from('PERFILES')
                     .select('role')
                     .eq('id', session.user.id)
-                    .single();
+                    .maybeSingle();
 
                 // Si no hay perfil, crearlo automáticamente leyendo los datos guardados en el registro (user_metadata)
                 if (!profile && session.user.user_metadata && session.user.user_metadata.role === 'repartidor') {
@@ -366,7 +366,17 @@
             }
         }
 
-        function initConductor() {
+        async function initConductor() {
+            // Forzar estado activo al abrir la app o iniciar sesión
+            const { error } = await sb.from('PERFILES')
+                .update({ esta_activo: true, ultima_vez_libre: new Date().toISOString() })
+                .eq('id', currentUser.id);
+            
+            if (error) {
+                console.error("Error al activar conductor automáticamente:", error);
+                alert("Hubo un problema de permisos al ponerte 'Disponible'. Avisa al administrador.");
+            }
+
             loadProfile();
             loadPool();
             checkActiveOrder();
@@ -374,7 +384,7 @@
         }
 
         async function loadProfile() {
-            const { data } = await sb.from('PERFILES').select('*').eq('id', currentUser.id).single();
+            const { data } = await sb.from('PERFILES').select('*').eq('id', currentUser.id).maybeSingle();
             if (data) {
                 document.getElementById('user-name').innerText = data.nombre_completo;
                 document.getElementById('toggle-active').checked = data.esta_activo;
@@ -432,7 +442,7 @@
                 .select('*')
                 .eq('motomandado_id', currentUser.id)
                 .eq('estado', 'en_viaje')
-                .single();
+                .maybeSingle();
             
             if (data) {
                 activeOrder = data;
