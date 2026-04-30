@@ -259,12 +259,20 @@
             else checkSession();
         };
 
-        document.getElementById('link-signup').onclick = async () => {
+        document.getElementById('link-signup').onclick = async (e) => {
+            e.preventDefault();
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-pass').value;
+            if (!email || !password) return alert("Ingresa tu email y contraseña primero.");
+
             const { data, error } = await sb.auth.signUp({ email, password });
-            if (error) alert("Error: " + error.message);
-            else alert("¡Registro exitoso! Verifica tu email e ingresa.");
+            if (error) return alert("Error: " + error.message);
+            
+            if (data.user) {
+                currentUser = data.user;
+                document.getElementById('auth-modal').classList.add('hidden');
+                document.getElementById('profile-modal').classList.remove('hidden');
+            }
         };
 
         document.getElementById('btn-logout').onclick = async () => {
@@ -288,14 +296,25 @@
         document.getElementById('btn-save-profile').onclick = async () => {
             const nombre = document.getElementById('prof-name').value;
             const telefono = document.getElementById('prof-phone').value;
+            if (!nombre || !telefono) return alert("Por favor completa los campos.");
+
             const { error } = await sb.from('PERFILES').insert({
                 id: currentUser.id,
                 nombre_completo: nombre,
                 telefono: telefono,
-                tipo_usuario: 'cliente'
+                role: 'cliente'
             });
-            if (error) alert(error.message);
-            else document.getElementById('profile-modal').classList.add('hidden');
+            
+            if (error) {
+                alert(error.message);
+            } else {
+                document.getElementById('profile-modal').classList.add('hidden');
+                alert("¡Perfil creado con éxito! Iniciando sesión...");
+                const email = document.getElementById('auth-email').value;
+                const password = document.getElementById('auth-pass').value;
+                await sb.auth.signInWithPassword({ email, password });
+                checkSession();
+            }
         };
 
         // ORDERS LOGIC

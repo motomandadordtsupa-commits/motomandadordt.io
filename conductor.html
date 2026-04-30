@@ -177,6 +177,18 @@
         </div>
     </div>
 
+    <!-- Modal de Registro Conductor -->
+    <div id="driver-register-modal" class="modal hidden">
+        <div class="card" style="max-width:400px; padding:2rem; width:100%; background: var(--color-bg-secondary); border-radius:1rem; text-align:center; border: 1px solid rgba(255,255,255,0.05);">
+            <h2 style="margin-bottom: 10px;">Completa tu Perfil</h2>
+            <p style="color:var(--color-text-muted); margin-bottom: 20px; font-size: 0.85rem;">Ingresá tus datos para que el admin te habilite.</p>
+            <input type="text" id="reg-name" placeholder="Nombre Completo" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
+            <input type="tel" id="reg-phone" placeholder="Teléfono" style="width:100%; padding:10px; margin-bottom:20px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
+            <button onclick="saveDriverProfile()" style="width:100%; padding:10px; background:var(--color-accent-success); color:white; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">ENVIAR REGISTRO</button>
+            <button onclick="location.reload()" style="margin-top:15px; background:none; border:none; color:var(--color-text-muted); cursor:pointer;">Cancelar</button>
+        </div>
+    </div>
+
     <!-- Contenido del Panel (envolvé lo que ya tenés con este div) -->
     <div id="driver-content" class="hidden">
         <div class="app-container">
@@ -401,6 +413,8 @@
                 .subscribe();
         }
 
+        let pendingRegisterUserId = null;
+
         async function registerDriver() {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('pass').value;
@@ -409,20 +423,31 @@
                 return alert("Ingresa un email y contraseña en el formulario antes de registrarte.");
             }
 
-            const name = prompt("Ingresa tu Nombre Completo:");
-            if (!name) return;
-            const phone = prompt("Ingresa tu número de Teléfono:");
-            if (!phone) return;
-
             const { data, error } = await sb.auth.signUp({ email, password: pass });
+            if (error) return alert("Error: " + error.message);
             
             if (data.user) {
-                await sb.from('PERFILES').insert([
-                    { id: data.user.id, nombre_completo: name, role: 'repartidor', telefono: phone, esta_activo: false }
-                ]);
-                alert("Registro enviado. El admin debe activarte para que puedas trabajar.");
-            } else if (error) {
+                pendingRegisterUserId = data.user.id;
+                document.getElementById('driver-auth').classList.add('hidden');
+                document.getElementById('driver-register-modal').classList.remove('hidden');
+            }
+        }
+
+        async function saveDriverProfile() {
+            const name = document.getElementById('reg-name').value;
+            const phone = document.getElementById('reg-phone').value;
+            if(!name || !phone) return alert("Por favor completa tu nombre y teléfono");
+
+            const { error } = await sb.from('PERFILES').insert([
+                { id: pendingRegisterUserId, nombre_completo: name, role: 'repartidor', telefono: phone, esta_activo: false }
+            ]);
+
+            if (error) {
                 alert("Error: " + error.message);
+            } else {
+                alert("Registro enviado con éxito. El administrador debe activarte para poder acceder.");
+                await sb.auth.signOut();
+                location.reload();
             }
         }
 
