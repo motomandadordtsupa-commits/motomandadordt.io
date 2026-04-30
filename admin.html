@@ -140,7 +140,8 @@
             <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
                 <button onclick="backupDatabase()" style="padding:10px; background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.1); border-radius:5px; font-size:0.65rem; cursor:pointer;">📥 BACKUP JSON</button>
                 <button onclick="document.getElementById('input-restore').click()" style="padding:10px; background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.1); border-radius:5px; font-size:0.65rem; cursor:pointer;">📤 RESTAURAR</button>
-                <button onclick="zeroizeDatabase()" style="padding:10px; background:rgba(239, 68, 68, 0.2); color:var(--color-accent-error); border:1px solid var(--color-accent-error); border-radius:5px; font-size:0.65rem; cursor:pointer; font-weight:700;">🔥 ZEROIZE (BORRAR TODO)</button>
+                <button onclick="reliefCleanup()" style="padding:10px; background:rgba(245, 158, 11, 0.2); color:#f59e0b; border:1px solid #f59e0b; border-radius:5px; font-size:0.65rem; cursor:pointer; font-weight:700;">🧘 BOTÓN DE ALIVIO (15D)</button>
+                <button onclick="zeroizeDatabase()" style="padding:10px; background:rgba(239, 68, 68, 0.2); color:var(--color-accent-error); border:1px solid var(--color-accent-error); border-radius:5px; font-size:0.65rem; cursor:pointer; font-weight:700;">🔥 ZEROIZE</button>
             </div>
             <input type="file" id="input-restore" class="hidden" accept=".json" onchange="restoreDatabase(this)">
         </div>
@@ -627,6 +628,39 @@
                 location.reload();
             } catch (err) {
                 alert("Error en Zeroize: " + err.message);
+            }
+        }
+
+        async function reliefCleanup() {
+            if (!confirm("🧘 BOTÓN DE ALIVIO\n\n¿Estás seguro de que deseas eliminar pedidos y mensajes de chat de hace más de 15 días?\n\nEsta acción es irreversible y liberará espacio en la base de datos.")) return;
+            
+            const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
+            
+            try {
+                // Limpiar Pedidos (No cancelados ni pendientes si son críticos, pero el usuario pidió limpieza total de hace 15 días)
+                const { error: errPed } = await sb.from('pedidos')
+                    .delete()
+                    .lt('created_at', fifteenDaysAgo);
+                
+                // Limpiar Chat (mensajes)
+                const { error: errMsgs } = await sb.from('mensajes')
+                    .delete()
+                    .lt('created_at', fifteenDaysAgo);
+
+                // Limpiar Chat (mensajes_chat - por si acaso hay inconsistencia de nombres)
+                await sb.from('mensajes_chat')
+                    .delete()
+                    .lt('created_at', fifteenDaysAgo);
+
+                if (errPed || errMsgs) {
+                    alert("Error parcial en la limpieza: " + (errPed?.message || errMsgs?.message));
+                } else {
+                    alert(`✅ Limpieza completada con éxito.\n\nSe eliminaron registros de más de 15 días para optimizar el sistema.`);
+                    loadRecentOrders();
+                    loadFinance();
+                }
+            } catch (e) {
+                alert("Error crítico: " + e.message);
             }
         }
 
