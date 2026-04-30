@@ -159,25 +159,25 @@
         const SUPABASE_KEY = 'sb_publishable_RRSZspZq5acSI3J_eT4HUg_Txykyu2S';
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        async function checkAdmin() {
-            const { data: { session } } = await sb.auth.getSession();
-            if (session) {
-                const { data: profile } = await sb
-                    .from('"PERFILES"')
-                    .select('tipo_usuario')
-                    .eq('id', session.user.id)
-                    .single();
-                
-                if (profile && profile.tipo_usuario === 'admin') {
-                    document.getElementById('admin-auth').classList.add('hidden');
-                    document.getElementById('admin-content').classList.remove('hidden');
-                    initDashboard();
-                } else {
-                    alert("ACCESO DENEGADO: No eres administrador.");
-                    await sb.auth.signOut();
-                }
-            }
+       async function checkAdmin() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+        const { data: profile } = await sb
+            .from('"PERFILES"')
+            .select('role') // ANTES DECÍA tipo_usuario
+            .eq('id', session.user.id)
+            .single();
+        
+        if (profile && profile.role === 'admin') { // ANTES DECÍA tipo_usuario
+            document.getElementById('admin-auth').classList.add('hidden');
+            document.getElementById('admin-content').classList.remove('hidden');
+            initDashboard();
+        } else {
+            alert("ACCESO DENEGADO: No eres administrador.");
+            await sb.auth.signOut();
         }
+    }
+}
 
         async function initDashboard() {
             loadDrivers();
