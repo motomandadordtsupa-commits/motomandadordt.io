@@ -166,28 +166,63 @@
 </head>
 <body>
 
-    <!-- Formulario de Acceso -->
     <div id="driver-auth" class="modal">
-        <div class="card" style="max-width:400px; padding:2rem; width:100%; background: var(--color-bg-secondary); border-radius:1rem; text-align:center; border: 1px solid rgba(255,255,255,0.05);">
-            <h2 style="margin-bottom: 20px;">Panel Conductor</h2>
-            <input type="email" id="email" placeholder="Tu Email" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
-            <input type="password" id="pass" placeholder="Tu Contraseña" style="width:100%; padding:10px; margin-bottom:20px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
-            <button onclick="loginDriver()" style="width:100%; padding:10px; background:var(--gradient-primary); color:white; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">ENTRAR</button>
-            <button onclick="showRegister()" style="margin-top:15px; background:none; border:none; color:var(--color-text-muted); cursor:pointer;">¿Nuevo? Registrate acá</button>
+        <div class="card" style="max-width:450px; padding:2rem; width:100%;">
+            <div style="text-align:center; margin-bottom: 20px;">
+               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px;">
+                  <path d="M5 16a2 2 0 1 0 0 4 2 2 0 0 0 0-4v0Z"></path>
+                  <path d="M19 16a2 2 0 1 0 0 4 2 2 0 0 0 0-4v0Z"></path>
+                  <path d="M5 18H3v-4l4-4h5l2.5 5H19v3"></path>
+                  <path d="m14 10 2-4h3"></path>
+               </svg>
+               <h2 class="header__title">MOTOMANDADO</h2>
+               <p style="font-size:0.75rem; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:2px; margin-top:5px;">Acceso Conductores</p>
+            </div>
+            <div class="form__group" style="margin-bottom: 15px;">
+                <label class="form__label" style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Email</label>
+                <input type="email" id="email" placeholder="Ej: conductor@mail.com" style="width: 100%;">
+            </div>
+            <div class="form__group" style="margin-bottom: 25px;">
+                <label class="form__label" style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Contraseña</label>
+                <input type="password" id="pass" placeholder="Tu contraseña" style="width: 100%;">
+            </div>
+            <button onclick="loginDriver()" class="button button--primary" style="width:100%; padding:12px;">INICIAR TURNO</button>
+            <button onclick="showRegister()" style="width:100%; margin-top:15px; padding:10px; background:none; color:var(--color-text-muted); font-size: 0.8rem;">¿Nuevo? Regístrate acá</button>
         </div>
     </div>
 
     <!-- Modal de Registro Conductor -->
     <div id="driver-register-modal" class="modal hidden">
-        <div class="card" style="max-width:400px; padding:2rem; width:100%; background: var(--color-bg-secondary); border-radius:1rem; text-align:center; border: 1px solid rgba(255,255,255,0.05);">
-            <h2 style="margin-bottom: 10px;">Registro de Conductor</h2>
-            <p style="color:var(--color-text-muted); margin-bottom: 20px; font-size: 0.85rem;">Ingresá tus datos para crear tu cuenta.</p>
-            <input type="text" id="reg-name" placeholder="Nombre Completo" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
-            <input type="tel" id="reg-phone" placeholder="Teléfono" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
-            <input type="email" id="reg-email" placeholder="Email" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
-            <input type="password" id="reg-pass" placeholder="Contraseña" style="width:100%; padding:10px; margin-bottom:20px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
-            <button onclick="registerDriver()" style="width:100%; padding:10px; background:var(--color-accent-success); color:white; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">ENVIAR REGISTRO</button>
-            <button onclick="showLogin()" style="margin-top:15px; background:none; border:none; color:var(--color-text-muted); cursor:pointer;">Cancelar</button>
+        <div class="card" style="max-width:450px; padding:2rem; width:100%;">
+            <div style="text-align:center; margin-bottom: 20px;">
+               <h2 class="header__title" style="font-size: 2rem;">REGISTRARSE</h2>
+               <p style="font-size:0.75rem; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:1px; margin-top:5px;">Crea tu cuenta de conductor</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div class="form__group">
+                    <label class="form__label" style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Nombre</label>
+                    <input type="text" id="reg-name" placeholder="Tu Nombre" style="width: 100%;">
+                </div>
+                <div class="form__group">
+                    <label class="form__label" style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Teléfono</label>
+                    <input type="tel" id="reg-phone" placeholder="Ej: 11234567" style="width: 100%;">
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                <div class="form__group">
+                    <label class="form__label" style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Email</label>
+                    <input type="email" id="reg-email" placeholder="correo@mail.com" style="width: 100%;">
+                </div>
+                <div class="form__group">
+                    <label class="form__label" style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Contraseña</label>
+                    <input type="password" id="reg-pass" placeholder="***" style="width: 100%;">
+                </div>
+            </div>
+            
+            <button onclick="registerDriver()" class="button button--primary" style="width:100%; padding:12px; background: #27272a; color: white !important; border: 1px solid rgba(255,255,255,0.1);">REGISTRARSE</button>
+            <button onclick="showLogin()" style="width:100%; margin-top:15px; padding:10px; background:none; color:var(--color-text-muted); font-size: 0.8rem;">Volver al acceso</button>
         </div>
     </div>
 
@@ -361,10 +396,17 @@
                 document.getElementById('active-order-section').classList.remove('hidden');
                 document.getElementById('pool-section').classList.add('hidden');
                 document.getElementById('active-order-card').innerHTML = `
-                    <p><strong>Ruta:</strong> ${data.descripcion}</p>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div style="flex:1;">
+                            <p><strong>Ruta:</strong> ${data.descripcion}</p>
+                            <p style="font-size:0.8rem; color:var(--color-accent-primary); margin-top:5px;">
+                                📏 ${data.distancia_cuadras || '?'} cuadras | 💵 Precio: $${data.monto || 0}
+                            </p>
+                        </div>
+                    </div>
                     <div style="margin-top:15px; display:flex; gap:10px;">
-                        <input type="number" id="order-monto" placeholder="Monto $" style="flex:1;">
-                        <button onclick="finalizeOrder('${data.id}')" style="background:var(--color-accent-success); padding:10px; border-radius:5px; color:white;">FINALIZAR</button>
+                        <input type="number" id="order-monto" value="${data.monto || 0}" style="flex:1;">
+                        <button onclick="finalizeOrder('${data.id}')" style="background:var(--color-accent-success); padding:10px; border-radius:5px; color:white; font-weight:700;">FINALIZAR</button>
                     </div>
                 `;
                 loadMessages();
@@ -465,8 +507,13 @@
             
             if (error) return alert("Error: " + error.message);
             
-            alert("¡Registro exitoso! Por favor, verifica tu correo electrónico antes de iniciar sesión.");
-            showLogin();
+            if (data.session) {
+                alert("¡Registro exitoso! Iniciando sesión automáticamente...");
+                checkDriver();
+            } else {
+                alert("¡Registro exitoso! Por favor, verifica tu correo electrónico antes de iniciar sesión.");
+                showLogin();
+            }
         }
 
         async function loginDriver() {

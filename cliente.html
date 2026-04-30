@@ -167,37 +167,58 @@
 <body>
 
     <div id="auth-modal" class="modal">
-        <div class="card" style="width: 100%; max-width: 400px;">
-            <h2 class="header__title" style="margin-bottom: var(--spacing-md);">Acceso Cliente</h2>
+        <div class="card" style="width: 100%; max-width: 400px; padding: 2.5rem;">
+            <div style="text-align:center; margin-bottom: 25px;">
+               <h2 class="header__title">MOTOMANDADO</h2>
+               <p style="font-size:0.75rem; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:2px; margin-top:5px;">Acceso Clientes</p>
+            </div>
             <div class="form">
-                <div class="form__group">
+                <div class="form__group" style="margin-bottom: 5px;">
                     <label class="form__label" for="auth-email">Email</label>
                     <input type="email" id="auth-email" placeholder="tu@email.com">
                 </div>
-                <div class="form__group">
+                <div class="form__group" style="margin-bottom: 15px;">
                     <label class="form__label" for="auth-pass">Contraseña</label>
                     <input type="password" id="auth-pass" placeholder="******">
                 </div>
-                <button class="button button--primary button--block" id="btn-login">Ingresar</button>
-                <p style="text-align: center; font-size: 0.8rem; color: var(--color-text-muted);">
-                    ¿No tienes cuenta? <a href="#" id="link-show-register" style="color: var(--color-accent-primary);">Regístrate</a>
+                <button class="button button--primary button--block" id="btn-login" style="padding: 12px;">INGRESAR</button>
+                <p style="text-align: center; font-size: 0.8rem; margin-top: 15px;">
+                    <button id="link-show-register" style="background:none; border:none; color:var(--color-text-muted);">¿Nuevo? Regístrate acá</button>
                 </p>
             </div>
         </div>
     </div>
 
     <div id="client-register-modal" class="modal hidden">
-        <div class="card" style="width: 100%; max-width: 400px;">
-            <h2 class="header__title">Registro de Cliente</h2>
-            <p style="font-size: 0.8rem; margin-bottom: var(--spacing-md);">Crea tu cuenta para pedir motos</p>
+        <div class="card" style="width: 100%; max-width: 450px; padding: 2rem;">
+            <div style="text-align:center; margin-bottom: 20px;">
+               <h2 class="header__title" style="font-size: 2rem;">REGISTRARSE</h2>
+               <p style="font-size:0.75rem; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:1px; margin-top:5px;">Crea tu cuenta para pedir motos</p>
+            </div>
             <div class="form">
-                <input type="text" id="reg-name" placeholder="Nombre Completo" style="padding:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
-                <input type="tel" id="reg-phone" placeholder="Teléfono" style="padding:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
-                <input type="email" id="reg-email" placeholder="Email" style="padding:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
-                <input type="password" id="reg-pass" placeholder="Contraseña" style="padding:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
-                <button class="button button--primary button--block" id="btn-register-client">Crear Cuenta</button>
-                <p style="text-align: center; font-size: 0.8rem; color: var(--color-text-muted); margin-top: 10px;">
-                    <a href="#" id="link-back-login" style="color: var(--color-text-muted);">Cancelar</a>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 5px;">
+                    <div class="form__group">
+                        <label class="form__label">Nombre</label>
+                        <input type="text" id="reg-name" placeholder="Tu Nombre">
+                    </div>
+                    <div class="form__group">
+                        <label class="form__label">Teléfono</label>
+                        <input type="tel" id="reg-phone" placeholder="Ej: 11234567">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form__group">
+                        <label class="form__label">Email</label>
+                        <input type="email" id="reg-email" placeholder="correo@mail.com">
+                    </div>
+                    <div class="form__group">
+                        <label class="form__label">Contraseña</label>
+                        <input type="password" id="reg-pass" placeholder="***">
+                    </div>
+                </div>
+                <button class="button button--primary button--block" id="btn-register-client" style="padding: 12px; background: #27272a; color: white !important; border: 1px solid rgba(255,255,255,0.1);">REGISTRARSE</button>
+                <p style="text-align: center; font-size: 0.8rem; margin-top: 15px;">
+                    <button id="link-back-login" style="background:none; border:none; color:var(--color-text-muted);">Volver al acceso</button>
                 </p>
             </div>
         </div>
@@ -217,16 +238,30 @@
 
     <div class="app-container">
         <header class="header">
-            <span class="header__title">MotoRDT Cliente</span>
-            <button class="button" id="btn-logout" style="background: transparent; color: var(--color-accent-error); font-size: 0.8rem;">Cerrar Sesión</button>
+            <span class="header__title" style="font-size: 1.5rem; letter-spacing: 1px;">MOTOMANDADO</span>
+            <button class="button" id="btn-logout" style="background: transparent; color: var(--color-text-muted); font-size: 0.8rem;">CERRAR SESIÓN</button>
         </header>
 
         <section class="card">
             <h3 style="margin-bottom: var(--spacing-sm);">Nuevo Pedido</h3>
             <div class="form">
-                <input type="text" id="order-origin" placeholder="📍 Punto de Origen">
-                <input type="text" id="order-dest" placeholder="🏁 Punto de Destino">
+                <input type="text" id="order-origin" placeholder="📍 Punto de Origen (Ej: Urquiza 400)">
+                <input type="text" id="order-dest" placeholder="🏁 Punto de Destino (Ej: 25 de Mayo 600)">
+                <input type="number" id="order-compra" placeholder="💰 Costo de Compra (opcional)" style="margin-top: 5px;">
                 <textarea id="order-desc" placeholder="📦 ¿Qué llevamos?" rows="2"></textarea>
+                
+                <div id="price-preview" class="hidden" style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: var(--radius-sm); border: 1px dashed var(--color-accent-primary); margin: 10px 0;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
+                        <span>Distancia estimada:</span>
+                        <span id="preview-dist" style="color:var(--color-accent-primary); font-weight:600;">-</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:1.1rem; margin-top:5px; font-weight:700;">
+                        <span>Total estimado:</span>
+                        <span id="preview-total" style="color:var(--color-accent-success);">$0</span>
+                    </div>
+                    <small id="preview-detail" style="font-size:0.6rem; color:var(--color-text-muted); display:block; margin-top:5px;"></small>
+                </div>
+
                 <button class="button button--primary button--block" id="btn-create-order">Solicitar Moto</button>
             </div>
         </section>
@@ -255,6 +290,105 @@
 
         let currentUser = null;
         let activeChatOrder = null;
+        let configGlobal = { precio_base: 2500, ciudad: 'Rosario del Tala', provincia: 'Entre Ríos', numeros_por_cuadra: 50 };
+        let currentCalculation = { cuadras: 0, monto: 0 };
+
+        // CONFIG & PRICE LOGIC
+        async function loadConfig() {
+            const { data } = await sb.from('configuracion').select('*').single();
+            if (data) configGlobal = data;
+        }
+
+        // Debounce calculation
+        let calcTimeout;
+        const triggerCalculation = () => {
+            clearTimeout(calcTimeout);
+            calcTimeout = setTimeout(presupuestarPedido, 800);
+        };
+
+        document.getElementById('order-origin').oninput = triggerCalculation;
+        document.getElementById('order-dest').oninput = triggerCalculation;
+        document.getElementById('order-compra').oninput = triggerCalculation;
+
+        async function presupuestarPedido() {
+            const origin = document.getElementById('order-origin').value.trim();
+            const dest = document.getElementById('order-dest').value.trim();
+            const compra = parseFloat(document.getElementById('order-compra').value) || 0;
+
+            if (origin.length < 5 || dest.length < 5) return;
+
+            document.getElementById('price-preview').classList.remove('hidden');
+            document.getElementById('preview-dist').textContent = "Calculando...";
+
+            const dist = await calcularDistancia(origin, dest);
+            
+            const base = configGlobal.precio_base;
+            const porcuadra = base * 0.02;
+            const costoViaje = base + (dist.cuadras * porcuadra);
+            const total = Math.round(costoViaje + compra);
+
+            currentCalculation = { cuadras: dist.cuadras, monto: total };
+
+            document.getElementById('preview-dist').textContent = `${dist.cuadras} cuadras`;
+            document.getElementById('preview-total').textContent = `$${total.toLocaleString('es-AR')}`;
+            document.getElementById('preview-detail').textContent = dist.detalle;
+        }
+
+        async function calcularDistancia(origen, destino) {
+            const ciudad = configGlobal.ciudad;
+            const provincia = configGlobal.provincia;
+            
+            // Intento con Georef API Argentina
+            try {
+                const getCoords = async (dir) => {
+                    const url = `https://apis.datos.gob.ar/georef/api/direcciones?direccion=${encodeURIComponent(dir)}&localidad=${encodeURIComponent(ciudad)}&provincia=${encodeURIComponent(provincia)}&max=1`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    if (data.direcciones && data.direcciones.length > 0) {
+                        return data.direcciones[0].ubicacion;
+                    }
+                    return null;
+                };
+
+                const c1 = await getCoords(origen);
+                const c2 = await getCoords(destino);
+
+                if (c1 && c2) {
+                    const R = 6371e3;
+                    const φ1 = c1.lat * Math.PI/180;
+                    const φ2 = c2.lat * Math.PI/180;
+                    const Δφ = (c2.lat-c1.lat) * Math.PI/180;
+                    const Δλ = (c2.lon-c1.lon) * Math.PI/180;
+                    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                    const metros = R * c;
+                    const cuadras = Math.max(1, Math.round(metros / 100));
+                    return { cuadras, detalle: "Calculado por GPS (Línea recta)" };
+                }
+            } catch (e) { console.warn("Error API Georef:", e); }
+
+            // Fallback manual por numeración
+            return calcularPorNumeracion(origen, destino);
+        }
+
+        function calcularPorNumeracion(origen, destino) {
+            const parse = (dir) => {
+                const match = dir.match(/^(.+?)\s+(\d+)\s*$/);
+                return match ? { calle: match[1].toLowerCase().trim(), num: parseInt(match[2]) } : null;
+            };
+            const o = parse(origen);
+            const d = parse(destino);
+
+            if (!o || !d) return { cuadras: 5, detalle: "Tarifa plana (Dirección no reconocida)" };
+
+            const numXCuadra = configGlobal.numeros_por_cuadra || 50;
+            if (o.calle === d.calle) {
+                const cuadras = Math.max(1, Math.ceil(Math.abs(o.num - d.num) / numXCuadra));
+                return { cuadras, detalle: "Misma calle (Cálculo manual)" };
+            }
+            const cuadras = Math.max(2, Math.ceil(Math.abs(o.num - d.num) / numXCuadra) + 1);
+            return { cuadras, detalle: "Diferentes calles (Estimado manual)" };
+        }
 
         // AUTH LOGIC
         async function checkSession() {
@@ -314,9 +448,14 @@
             });
             if (error) return alert("Error: " + error.message);
             
-            alert("¡Registro exitoso! Por favor, verifica tu correo electrónico antes de iniciar sesión.");
-            document.getElementById('client-register-modal').classList.add('hidden');
-            document.getElementById('auth-modal').classList.remove('hidden');
+            if (data.session) {
+                alert("¡Registro exitoso! Iniciando sesión automáticamente...");
+                checkSession();
+            } else {
+                alert("¡Registro exitoso! Por favor, verifica tu correo electrónico antes de iniciar sesión.");
+                document.getElementById('client-register-modal').classList.add('hidden');
+                document.getElementById('auth-modal').classList.remove('hidden');
+            }
         };
 
         document.getElementById('btn-logout').onclick = async () => {
@@ -380,14 +519,20 @@
             const origin = document.getElementById('order-origin').value;
             const dest = document.getElementById('order-dest').value;
             const desc = document.getElementById('order-desc').value;
+            const compra = parseFloat(document.getElementById('order-compra').value) || 0;
 
             if(!origin || !dest) return alert("Completa origen y destino");
+
+            // Si no se calculó aún, forzamos uno rápido
+            if (currentCalculation.monto === 0) await presupuestarPedido();
 
             const { error } = await sb.from('pedidos').insert({
                 cliente_id: currentUser.id,
                 descripcion: `${origin} -> ${dest} | ${desc}`,
                 estado: 'pendiente',
-                monto: 0
+                monto: currentCalculation.monto,
+                distancia_cuadras: currentCalculation.cuadras,
+                costo_compra: compra
             });
 
             if (error) alert(error.message);
@@ -396,17 +541,24 @@
                 document.getElementById('order-origin').value = '';
                 document.getElementById('order-dest').value = '';
                 document.getElementById('order-desc').value = '';
+                document.getElementById('order-compra').value = '';
+                document.getElementById('price-preview').classList.add('hidden');
+                currentCalculation = { cuadras: 0, monto: 0 };
             }
         };
 
         async function loadOrders() {
-            const { data } = await sb
+            const { data, error } = await sb
                 .from('pedidos')
-                .select('*, PERFILES(nombre_completo)')
+                .select('*')
                 .eq('cliente_id', currentUser.id)
                 .order('created_at', { ascending: false });
             
-            renderOrders(data);
+            if (error) {
+                console.error("Error cargando pedidos:", error);
+                return;
+            }
+            renderOrders(data || []);
         }
 
         function renderOrders(orders) {
@@ -490,6 +642,7 @@
                 .subscribe();
         }
 
+        loadConfig();
         checkSession();
     </script>
 </body>

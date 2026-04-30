@@ -91,67 +91,92 @@
 <body>
 
     <div id="admin-auth" class="modal">
-        <div class="card" style="width:100%; max-width:400px; padding:2rem; background: var(--color-bg-secondary); border-radius:1rem;">
-            <h1 style="margin-bottom:1.5rem; text-align:center;">PANEL ADMINISTRADOR</h1>
-            <label class="form__label" for="email">Email Admin</label>
-            <input type="email" id="email" placeholder="Email Admin" style="width:100%; margin-bottom:10px;">
-            <label class="form__label" for="pass">Contraseña</label>
-            <input type="password" id="pass" placeholder="Password" style="width:100%; margin-bottom:20px;">
-            <button id="btn-login-admin" class="button button--primary button--block">ACCEDER AL CONTROL</button>
+        <div class="card" style="width:100%; max-width:400px; padding:2rem; text-align:center;">
+            <h1 class="header__title" style="margin-bottom:5px;">moto<span style="color:var(--color-text-main);">·</span>mandado</h1>
+            <p style="font-size:0.75rem; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:2px; margin-bottom: 25px;">Acceso Administrador</p>
+            
+            <div class="form__group" style="text-align:left; margin-bottom: 15px;">
+                <label class="form__label" style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Email Admin</label>
+                <input type="email" id="email" placeholder="admin@motomandado.com" style="width:100%;">
+            </div>
+            <div class="form__group" style="text-align:left; margin-bottom: 25px;">
+                <label class="form__label" style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Contraseña</label>
+                <input type="password" id="pass" placeholder="***" style="width:100%;">
+            </div>
+            <button id="btn-login-admin" class="button button--primary" style="width:100%; padding:12px;">INICIAR SESIÓN</button>
         </div>
     </div>
 
-    <div id="admin-content" class="hidden">
-        <header class="header-admin">
-            <h1 class="header__title">Panel de Control Global</h1>
-            <button id="btn-logout" style="background:transparent; color:var(--color-accent-error);">SALIR</button>
-        </header>
+    <div id="admin-content" class="hidden" style="max-width: 500px; margin: 0 auto; padding: 20px 15px;">
+        <div style="text-align:center; margin-bottom: 20px;">
+            <h1 style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); letter-spacing: 2px; line-height: 1;">moto<span style="color:var(--color-text-main);">·</span>mandado</h1>
+            <p style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 2px;">Panel de Administración Central</p>
+            <button id="btn-logout" style="background:transparent; border:none; color:var(--color-text-muted); font-size: 0.75rem; margin-top: 10px; cursor:pointer;">CERRAR SESIÓN</button>
+        </div>
 
-        <main class="admin-grid">
-            <!-- Columna 1: Conductores -->
-            <section class="table-container">
-                <h3 style="padding:1rem;">Conductores en Tiempo Real</h3>
-                <table id="drivers-table">
-                    <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Estado</th>
-                            <th>Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </section>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <div class="card" style="text-align:center; padding: 15px;">
+                <div id="a-conductores" style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); line-height:1;">0</div>
+                <div style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; margin-top:5px;">Conductores Activos</div>
+            </div>
+            <div class="card" style="text-align:center; padding: 15px;">
+                <div id="a-pedidos" style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); line-height:1;">0</div>
+                <div style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; margin-top:5px;">Pedidos Hoy</div>
+            </div>
+            <div class="card" style="text-align:center; padding: 15px;">
+                <div id="a-clientes" style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); line-height:1;">0</div>
+                <div style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; margin-top:5px;">Clientes</div>
+            </div>
+            <div class="card" style="text-align:center; padding: 15px;">
+                <div id="a-ingresos" style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); line-height:1;">$0</div>
+                <div style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; margin-top:5px;">Ingresos (Entregados)</div>
+            </div>
+        </div>
 
-            <!-- Columna 2: Finanzas -->
-            <section class="table-container">
-                <h3 style="padding:1rem;">Recaudación por Conductor</h3>
-                <table id="finance-table">
-                    <thead>
-                        <tr>
-                            <th>Conductor</th>
-                            <th>Total Recaudado</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </section>
+        <div class="card" style="margin-bottom: 20px;">
+            <h3 style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-accent-primary); margin-bottom: 15px;">Ajuste de Tarifas</h3>
+            <div class="form__group" style="margin-bottom: 15px;">
+                <label style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase;">Precio Base del Viaje ($)</label>
+                <input type="number" id="admin-base" value="2500" style="width: 100%;">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div class="form__group">
+                    <label style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase;">Ciudad</label>
+                    <input type="text" id="admin-ciudad" value="Rosario del Tala" style="width: 100%;">
+                </div>
+                <div class="form__group">
+                    <label style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase;">Provincia</label>
+                    <input type="text" id="admin-provincia" value="Entre Ríos" style="width: 100%;">
+                </div>
+            </div>
+            <div class="form__group" style="margin-bottom: 15px;">
+                <label style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase;">Números por Cuadra (Cálculo Manual)</label>
+                <input type="number" id="admin-num-cuadra" value="50" style="width: 100%;">
+                <small style="color: var(--color-text-muted); font-size: 0.65rem;">Se usa cuando no se encuentra la dirección en el mapa.</small>
+            </div>
+            <button class="button button--primary" style="width:100%; padding: 10px; font-size: 0.8rem;" id="btn-save-config">GUARDAR CONFIGURACIÓN GLOBAL</button>
+        </div>
 
-            <!-- Columna 3: Usuarios Totales -->
-            <section class="table-container" style="grid-column: span 2;">
-                <h3 style="padding:1rem;">Gestión de Clientes</h3>
-                <table id="clients-table">
-                    <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Teléfono</th>
-                            <th>Eliminar</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </section>
-        </main>
+        <div class="card" style="margin-bottom: 20px;">
+            <h3 style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-accent-primary); margin-bottom: 15px;">Pedidos Recientes</h3>
+            <div id="admin-orders-list" style="overflow-x: auto;">
+                <p style="text-align:center; color:var(--color-text-muted); font-size: 0.85rem;">Cargando pedidos...</p>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 20px;">
+            <h3 style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-accent-primary); margin-bottom: 15px;">Conductores Registrados</h3>
+            <div id="admin-drivers">
+                <p style="text-align:center; color:var(--color-text-muted); font-size: 0.85rem;">Cargando flota...</p>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 20px;">
+            <h3 style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-accent-primary); margin-bottom: 15px;">Gestión de Clientes</h3>
+            <div id="admin-clients">
+                <p style="text-align:center; color:var(--color-text-muted); font-size: 0.85rem;">Cargando clientes...</p>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -182,11 +207,36 @@
 }
 
         async function initDashboard() {
+            loadConfig();
             loadDrivers();
             loadFinance();
             loadClients();
+            loadRecentOrders();
             subscribeRealtime();
         }
+
+        async function loadConfig() {
+            const { data, error } = await sb.from('configuracion').select('*').single();
+            if (data) {
+                document.getElementById('admin-base').value = data.precio_base;
+                document.getElementById('admin-ciudad').value = data.ciudad;
+                document.getElementById('admin-provincia').value = data.provincia;
+                document.getElementById('admin-num-cuadra').value = data.numeros_por_cuadra || 50;
+            }
+        }
+
+        document.getElementById('btn-save-config').onclick = async () => {
+            const config = {
+                precio_base: parseFloat(document.getElementById('admin-base').value),
+                ciudad: document.getElementById('admin-ciudad').value,
+                provincia: document.getElementById('admin-provincia').value,
+                numeros_por_cuadra: parseInt(document.getElementById('admin-num-cuadra').value)
+            };
+
+            const { error } = await sb.from('configuracion').upsert({ id: 1, ...config });
+            if (error) alert("Error al guardar: " + error.message);
+            else alert("¡Configuración guardada correctamente!");
+        };
 
         async function loadDrivers() {
             const { data } = await sb
@@ -194,16 +244,33 @@
                 .select('*')
                 .eq('role', 'repartidor');
             
-            const tbody = document.querySelector('#drivers-table tbody');
-            tbody.innerHTML = data && data.length ? data.map(d => `
-                <tr>
-                    <td>${d.nombre_completo}</td>
-                    <td class="${d.esta_activo ? 'driver-active' : 'driver-inactive'}">
-                        ${d.esta_activo ? '● ACTIVO' : '○ OFF'}
-                    </td>
-                    <td><button class="btn-delete" onclick="deleteUser('${d.id}')">BAJA</button></td>
-                </tr>
-            `).join('') : '';
+            const container = document.getElementById('admin-drivers');
+            
+            if (!data || data.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:var(--color-text-muted); font-size: 0.85rem;">No hay conductores registrados</p>';
+            } else {
+                const activeCount = data.filter(d => d.esta_activo).length;
+                document.getElementById('a-conductores').textContent = activeCount;
+
+                container.innerHTML = data.map(d => `
+                    <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <div style="flex:1;">
+                            <div style="font-weight:600; font-size:1rem; color:var(--color-text-main);">${d.nombre_completo}</div>
+                            <div style="font-size:0.75rem; color:var(--color-text-muted);">Tel: ${d.telefono || '-'}</div>
+                        </div>
+                        <button onclick="toggleDriverStatus('${d.id}', ${!d.esta_activo})" style="background:transparent; border:none; padding:4px 8px; border-radius:4px; font-size:0.7rem; cursor:pointer; color:${d.esta_activo ? 'var(--color-accent-success)' : 'var(--color-text-muted)'}; background:${d.esta_activo ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.05)'}; font-weight:bold;">
+                            ${d.esta_activo ? 'ACTIVO' : 'INACTIVO'}
+                        </button>
+                        <button onclick="deleteUser('${d.id}')" style="background:rgba(239, 68, 68, 0.1); border:1px solid var(--color-accent-error); color:var(--color-accent-error); padding:6px 10px; border-radius:6px; cursor:pointer;">🗑️</button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        async function toggleDriverStatus(userId, newStatus) {
+            const { error } = await sb.from('PERFILES').update({ esta_activo: newStatus }).eq('id', userId);
+            if (error) alert("Error actualizando estado: " + error.message);
+            else loadDrivers();
         }
 
         async function loadClients() {
@@ -212,34 +279,42 @@
                 .select('*')
                 .eq('role', 'cliente');
             
-            const tbody = document.querySelector('#clients-table tbody');
-            tbody.innerHTML = data && data.length ? data.map(c => `
-                <tr>
-                    <td>${c.nombre_completo}</td>
-                    <td>${c.telefono}</td>
-                    <td><button class="btn-delete" onclick="deleteUser('${c.id}')">ELIMINAR</button></td>
-                </tr>
-            `).join('') : '';
+            const container = document.getElementById('admin-clients');
+            
+            if (!data || data.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:var(--color-text-muted); font-size: 0.85rem;">No hay clientes registrados</p>';
+            } else {
+                document.getElementById('a-clientes').textContent = data.length;
+
+                container.innerHTML = data.map(c => `
+                    <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <div style="flex:1;">
+                            <div style="font-weight:600; font-size:1rem; color:var(--color-text-main);">${c.nombre_completo}</div>
+                            <div style="font-size:0.75rem; color:var(--color-text-muted);">Tel: ${c.telefono || '-'}</div>
+                        </div>
+                        <button onclick="deleteUser('${c.id}')" style="background:rgba(239, 68, 68, 0.1); border:1px solid var(--color-accent-error); color:var(--color-accent-error); padding:6px 10px; border-radius:6px; cursor:pointer;">🗑️</button>
+                    </div>
+                `).join('');
+            }
         }
 
         async function loadFinance() {
-            // Sumamos los pedidos entregados por cada conductor
-            const { data: drivers } = await sb.from('PERFILES').select('id, nombre_completo').eq('role', 'repartidor');
-            const { data: orders } = await sb.from('pedidos').select('motomandado_id, monto').eq('estado', 'entregado');
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            const { data: orders } = await sb
+                .from('pedidos')
+                .select('monto, estado, created_at');
 
-            const financeTable = document.querySelector('#finance-table tbody');
-            if(drivers && orders) {
-                financeTable.innerHTML = drivers.map(d => {
-                    const total = orders
-                        .filter(o => o.motomandado_id === d.id)
-                        .reduce((sum, o) => sum + (o.monto || 0), 0);
-                    return `
-                        <tr>
-                            <td>${d.nombre_completo}</td>
-                            <td style="color:var(--color-accent-success); font-weight:bold;">$${total}</td>
-                        </tr>
-                    `;
-                }).join('');
+            if(orders) {
+                const todayOrders = orders.filter(o => new Date(o.created_at) >= today);
+                document.getElementById('a-pedidos').textContent = todayOrders.length;
+
+                const ingresos = orders
+                    .filter(o => o.estado === 'entregado')
+                    .reduce((sum, o) => sum + (o.monto || 0), 0);
+                
+                document.getElementById('a-ingresos').textContent = '$' + ingresos.toLocaleString('es-AR');
             }
         }
 
@@ -261,11 +336,58 @@
             }
         }
 
+        async function loadRecentOrders() {
+            const { data, error } = await sb
+                .from('pedidos')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            const container = document.getElementById('admin-orders-list');
+            if (!data || data.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:var(--color-text-muted); font-size: 0.85rem;">No hay pedidos registrados</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table style="width:100%; min-width:450px;">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Origen/Destino</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(o => `
+                            <tr>
+                                <td style="font-size:0.7rem; color:var(--color-text-muted);">#${o.id.split('-')[0]}</td>
+                                <td style="font-size:0.8rem;">
+                                    <div style="font-weight:600;">${o.descripcion.split('->')[0]}</div>
+                                    <div style="color:var(--color-text-muted);">→ ${o.descripcion.split('->')[1]?.split('|')[0] || 'Destino'}</div>
+                                </td>
+                                <td style="font-weight:bold; color:var(--color-accent-primary);">$${o.monto || 0}</td>
+                                <td>
+                                    <span style="font-size:0.65rem; padding:2px 6px; border-radius:4px; background:rgba(255,255,255,0.05); color:var(--color-text-muted);">
+                                        ${o.estado.toUpperCase()}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
         function subscribeRealtime() {
-            // Escuchar cambios en perfiles y pedidos para actualizar el panel de Saul
+            // Escuchar cambios en perfiles y pedidos para actualizar el panel
             sb.channel('admin-control')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'PERFILES' }, loadDrivers)
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, loadFinance)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, () => {
+                    loadFinance();
+                    loadRecentOrders();
+                })
                 .subscribe();
         }
 
