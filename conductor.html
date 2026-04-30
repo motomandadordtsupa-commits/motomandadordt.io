@@ -131,24 +131,55 @@
         .message { padding: 8px 12px; border-radius: 12px; margin-bottom: 5px; font-size: 0.85rem; max-width: 85%; }
         .message--moto { align-self: flex-end; background: var(--color-accent-success); color: white; }
         .message--client { align-self: flex-start; background: rgba(255,255,255,0.1); }
+
+        .auth-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--color-bg-primary);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 5000; padding: var(--spacing-md);
+        }
+        .auth-box {
+            background: var(--color-bg-secondary);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+            width: 100%; max-width: 400px;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .auth-box input {
+            width: 100%; padding: 10px; border-radius: 5px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: var(--color-bg-primary); color: white;
+            font-family: inherit;
+        }
+        .auth-box button {
+            background: var(--gradient-primary); color: white;
+            padding: 10px; border-radius: 5px; cursor: pointer;
+            font-weight: 700; width: 100%; border: none;
+            font-family: inherit;
+        }
+        .auth-box hr { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0; }
+        .auth-box h2 { color: white; margin-bottom: 10px; }
+        .auth-box p { color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
-    <div id="auth-modal" class="modal">
-        <div class="stat-card" style="width: 100%; max-width: 400px;">
-            <h2 style="margin-bottom: var(--spacing-md); color: white;">Acceso Conductor</h2>
-            <div style="display:flex; flex-direction:column; gap:10px;">
-                <label class="stat-card__label" for="auth-email">Email</label>
-                <input type="email" id="auth-email" placeholder="Email">
-                <label class="stat-card__label" for="auth-pass">Contraseña</label>
-                <input type="password" id="auth-pass" placeholder="Contraseña">
-                <button class="stat-card" style="background: var(--gradient-primary); color: white; width: 100%; cursor:pointer;" id="btn-login">ENTRAR A TURNO</button>
-            </div>
+    <!-- Formulario de Acceso -->
+    <div id="driver-auth" class="modal">
+        <div class="card" style="max-width:400px; padding:2rem; width:100%; background: var(--color-bg-secondary); border-radius:1rem; text-align:center; border: 1px solid rgba(255,255,255,0.05);">
+            <h2 style="margin-bottom: 20px;">Panel Conductor</h2>
+            <input type="email" id="email" placeholder="Tu Email" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
+            <input type="password" id="pass" placeholder="Tu Contraseña" style="width:100%; padding:10px; margin-bottom:20px; border-radius:5px; border:1px solid rgba(255,255,255,0.1); background:var(--color-bg-primary); color:white;">
+            <button onclick="loginDriver()" style="width:100%; padding:10px; background:var(--gradient-primary); color:white; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">ENTRAR</button>
+            <button onclick="registerDriver()" style="margin-top:15px; background:none; border:none; color:var(--color-text-muted); cursor:pointer;">¿Nuevo? Registrate acá</button>
         </div>
     </div>
 
-    <div class="app-container">
+    <!-- Contenido del Panel (envolvé lo que ya tenés con este div) -->
+    <div id="driver-content" class="hidden">
+        <div class="app-container">
         <header class="header">
             <div>
                 <h1 class="header__title">MotoRDT Driver</h1>
@@ -197,7 +228,8 @@
                 <!-- Lista de pendientes -->
             </div>
         </section>
-    </div>
+        </div> <!-- End of app-container -->
+    </div> <!-- End of driver-content -->
 
     <script>
         const SUPABASE_URL = 'https://aodoaefxnnpgjwcyfixx.supabase.co';
@@ -209,20 +241,45 @@
         let earnings = 0;
         let deliveries = 0;
 
-        async function checkSession() {
+        async function checkDriver() {
             const { data: { session } } = await sb.auth.getSession();
+            
             if (session) {
                 currentUser = session.user;
-                document.getElementById('auth-modal').classList.add('hidden');
-                loadProfile();
-                loadPool();
-                checkActiveOrder();
-                subscribeRealtime();
+                const { data: profile } = await sb
+                    .from('PERFILES')
+                    .select('role') // Asegurate que se llame 'role' como en la DB
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (profile && profile.role === 'repartidor') {
+                    document.getElementById('driver-auth').classList.add('hidden');
+                    document.getElementById('driver-content').classList.remove('hidden');
+                    initConductor(); // Tu función para cargar pedidos
+                } else if (profile && profile.role === 'admin') {
+                    alert("Estás logueado como Admin. Salí e ingresá con cuenta de conductor.");
+                    await sb.auth.signOut();
+                    location.reload();
+                } else {
+                    alert("No tienes permiso de conductor.");
+                    await sb.auth.signOut();
+                    location.reload();
+                }
+            } else {
+                document.getElementById('driver-auth').classList.remove('hidden');
+                document.getElementById('driver-content').classList.add('hidden');
             }
         }
 
+        function initConductor() {
+            loadProfile();
+            loadPool();
+            checkActiveOrder();
+            subscribeRealtime();
+        }
+
         async function loadProfile() {
-            const { data } = await sb.from('"PERFILES"').select('*').eq('id', currentUser.id).single();
+            const { data } = await sb.from('PERFILES').select('*').eq('id', currentUser.id).single();
             if (data) {
                 document.getElementById('user-name').innerText = data.nombre_completo;
                 document.getElementById('toggle-active').checked = data.esta_activo;
@@ -237,12 +294,12 @@
 
         document.getElementById('toggle-active').onchange = async (e) => {
             const active = e.target.checked;
-            await sb.from('"PERFILES"').update({ esta_activo: active }).eq('id', currentUser.id);
+            await sb.from('PERFILES').update({ esta_activo: active }).eq('id', currentUser.id);
             updateStatusUI(active);
         };
 
         async function loadPool() {
-            const { data } = await sb.from('"pedidos"').select('*').eq('estado', 'pendiente');
+            const { data } = await sb.from('pedidos').select('*').eq('estado', 'pendiente');
             const container = document.getElementById('pool-container');
             container.innerHTML = data && data.length ? data.map(o => `
                 <div class="order-card">
@@ -254,7 +311,7 @@
         }
 
         async function acceptOrder(id) {
-            const { error } = await sb.from('"pedidos"').update({
+            const { error } = await sb.from('pedidos').update({
                 estado: 'en_viaje',
                 motomandado_id: currentUser.id
             }).eq('id', id);
@@ -263,7 +320,7 @@
         }
 
         async function checkActiveOrder() {
-            const { data } = await sb.from('"pedidos"')
+            const { data } = await sb.from('pedidos')
                 .select('*')
                 .eq('motomandado_id', currentUser.id)
                 .eq('estado', 'en_viaje')
@@ -291,7 +348,7 @@
 
         async function finalizeOrder(id) {
             const monto = parseFloat(document.getElementById('order-monto').value) || 0;
-            const { error } = await sb.from('"pedidos"').update({
+            const { error } = await sb.from('pedidos').update({
                 estado: 'entregado',
                 monto: monto
             }).eq('id', id);
@@ -317,7 +374,7 @@
         // CHAT (Same logic as client but different side)
         async function loadMessages() {
             if(!activeOrder) return;
-            const { data } = await sb.from('"mensajes_chat"').select('*').eq('id_pedido', activeOrder.id).order('created_at', { ascending: true });
+            const { data } = await sb.from('mensajes_chat').select('*').eq('id_pedido', activeOrder.id).order('created_at', { ascending: true });
             const chatBox = document.getElementById('chat-messages');
             chatBox.innerHTML = data.map(m => `
                 <div class="message ${m.remitente_id === currentUser.id ? 'message--moto' : 'message--client'}">
@@ -330,7 +387,7 @@
         document.getElementById('btn-send-msg').onclick = async () => {
             const input = document.getElementById('chat-input');
             if(!input.value.trim() || !activeOrder) return;
-            await sb.from('"mensajes_chat"').insert({
+            await sb.from('mensajes_chat').insert({
                 id_pedido: activeOrder.id,
                 remitente_id: currentUser.id,
                 contenido: input.value
@@ -344,20 +401,46 @@
                 .subscribe();
         }
 
-        document.getElementById('btn-login').onclick = async () => {
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-pass').value;
-            const { error } = await sb.auth.signInWithPassword({ email, password });
+        async function registerDriver() {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('pass').value;
+            
+            if (!email || !pass) {
+                return alert("Ingresa un email y contraseña en el formulario antes de registrarte.");
+            }
+
+            const name = prompt("Ingresa tu Nombre Completo:");
+            if (!name) return;
+            const phone = prompt("Ingresa tu número de Teléfono:");
+            if (!phone) return;
+
+            const { data, error } = await sb.auth.signUp({ email, password: pass });
+            
+            if (data.user) {
+                await sb.from('PERFILES').insert([
+                    { id: data.user.id, nombre_completo: name, role: 'repartidor', telefono: phone, esta_activo: false }
+                ]);
+                alert("Registro enviado. El admin debe activarte para que puedas trabajar.");
+            } else if (error) {
+                alert("Error: " + error.message);
+            }
+        }
+
+        async function loginDriver() {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('pass').value;
+            const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+            
             if (error) alert(error.message);
-            else checkSession();
-        };
+            else checkDriver();
+        }
 
         document.getElementById('btn-logout').onclick = async () => {
             await sb.auth.signOut();
             location.reload();
         };
 
-        checkSession();
+        checkDriver();
     </script>
 </body>
 </html>

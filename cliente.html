@@ -275,7 +275,7 @@
         // PROFILE LOGIC
         async function checkProfile() {
             const { data, error } = await sb
-                .from('"PERFILES"')
+                .from('PERFILES')
                 .select('*')
                 .eq('id', currentUser.id)
                 .single();
@@ -288,7 +288,7 @@
         document.getElementById('btn-save-profile').onclick = async () => {
             const nombre = document.getElementById('prof-name').value;
             const telefono = document.getElementById('prof-phone').value;
-            const { error } = await sb.from('"PERFILES"').insert({
+            const { error } = await sb.from('PERFILES').insert({
                 id: currentUser.id,
                 nombre_completo: nombre,
                 telefono: telefono,
@@ -306,7 +306,7 @@
 
             if(!origin || !dest) return alert("Completa origen y destino");
 
-            const { error } = await sb.from('"pedidos"').insert({
+            const { error } = await sb.from('pedidos').insert({
                 cliente_id: currentUser.id,
                 descripcion: `${origin} -> ${dest} | ${desc}`,
                 estado: 'pendiente',
@@ -324,8 +324,8 @@
 
         async function loadOrders() {
             const { data } = await sb
-                .from('"pedidos"')
-                .select('*, "PERFILES"(nombre_completo)')
+                .from('pedidos')
+                .select('*, PERFILES(nombre_completo)')
                 .eq('cliente_id', currentUser.id)
                 .order('created_at', { ascending: false });
             
@@ -379,7 +379,7 @@
 
         async function loadMessages() {
             const { data } = await sb
-                .from('"mensajes_chat"')
+                .from('mensajes_chat')
                 .select('*')
                 .eq('id_pedido', activeChatOrder)
                 .order('created_at', { ascending: true });
@@ -398,7 +398,7 @@
             const msg = input.value.trim();
             if(!msg) return;
 
-            const { error } = await sb.from('"mensajes_chat"').insert({
+            const { error } = await sb.from('mensajes_chat').insert({
                 id_pedido: activeChatOrder,
                 remitente_id: currentUser.id,
                 contenido: msg

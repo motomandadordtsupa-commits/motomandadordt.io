@@ -190,9 +190,9 @@
 
         async function loadDrivers() {
             const { data } = await sb
-                .from('"PERFILES"')
+                .from('PERFILES')
                 .select('*')
-                .eq('tipo_usuario', 'repartidor');
+                .eq('role', 'repartidor');
             
             const tbody = document.querySelector('#drivers-table tbody');
             tbody.innerHTML = data && data.length ? data.map(d => `
@@ -208,9 +208,9 @@
 
         async function loadClients() {
             const { data } = await sb
-                .from('"PERFILES"')
+                .from('PERFILES')
                 .select('*')
-                .eq('tipo_usuario', 'cliente');
+                .eq('role', 'cliente');
             
             const tbody = document.querySelector('#clients-table tbody');
             tbody.innerHTML = data && data.length ? data.map(c => `
@@ -224,8 +224,8 @@
 
         async function loadFinance() {
             // Sumamos los pedidos entregados por cada conductor
-            const { data: drivers } = await sb.from('"PERFILES"').select('id, nombre_completo').eq('tipo_usuario', 'repartidor');
-            const { data: orders } = await sb.from('"pedidos"').select('motomandado_id, monto').eq('estado', 'entregado');
+            const { data: drivers } = await sb.from('PERFILES').select('id, nombre_completo').eq('role', 'repartidor');
+            const { data: orders } = await sb.from('pedidos').select('motomandado_id, monto').eq('estado', 'entregado');
 
             const financeTable = document.querySelector('#finance-table tbody');
             if(drivers && orders) {
@@ -243,11 +243,21 @@
             }
         }
 
-        async function deleteUser(id) {
-            if (confirm("¿Estás seguro de eliminar este perfil? Esta acción es irreversible.")) {
-                const { error } = await sb.from('"PERFILES"').delete().eq('id', id);
-                if (error) alert("Error al eliminar: " + error.message);
-                else initDashboard();
+        async function deleteUser(userId) {
+            if (confirm("¿Estás seguro de que deseas eliminar este usuario?")) {
+                const { error } = await sb
+                    .from('PERFILES')
+                    .delete()
+                    .eq('id', userId);
+
+                if (error) {
+                    alert("Error al eliminar: " + error.message);
+                } else {
+                    alert("Usuario eliminado con éxito");
+                    // Recargamos ambas listas para estar seguros
+                    loadDrivers();
+                    loadClients();
+                }
             }
         }
 
