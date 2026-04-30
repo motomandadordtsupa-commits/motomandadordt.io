@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MotomandadoRDT - Cliente</title>
+    <link rel="stylesheet" href="variables.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Base BEM Styles for Cliente */
+        .app-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: var(--spacing-md);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+
+        .card {
+            background: var(--color-bg-secondary);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            box-shadow: var(--shadow-premium);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .form {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .form__group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .form__label {
+            color: var(--color-text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .button {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            text-align: center;
+            display: inline-block;
+        }
+
+        .button--primary {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .button--block {
+            display: block;
+            width: 100%;
+        }
+
+        .order-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .order-card {
+            background: rgba(255,255,255,0.03);
+            border-radius: var(--radius-sm);
+            padding: var(--spacing-sm);
+            border-left: 4px solid var(--color-accent-primary);
+            transition: var(--transition-smooth);
+        }
+
+        .order-card--en-viaje { border-left-color: var(--color-accent-warning); }
+        .order-card--entregado { border-left-color: var(--color-accent-success); opacity: 0.7; }
+
+        .status-badge {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            float: right;
+        }
+
+        /* Overlay for Profile / Auth */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: var(--spacing-md);
+        }
+
+        .hidden { display: none !important; }
+
+        .chat-widget {
+            position: fixed;
+            bottom: var(--spacing-md);
+            right: var(--spacing-md);
+            width: 300px;
+            max-height: 400px;
+            background: var(--color-bg-secondary);
+            border-radius: var(--radius-md);
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-premium);
+            border: 1px solid var(--color-accent-primary);
+        }
+
+        .chat-widget__header {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background: var(--color-accent-primary);
+            color: var(--color-bg-primary);
+            font-weight: 700;
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+        }
+
+        .chat-widget__messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--spacing-sm);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .message {
+            padding: 8px 12px;
+            border-radius: 12px;
+            max-width: 80%;
+            font-size: 0.9rem;
+        }
+
+        .message--client {
+            align-self: flex-end;
+            background: var(--color-accent-primary);
+            color: var(--color-bg-primary);
+        }
+
+        .message--moto {
+            align-self: flex-start;
+            background: rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="auth-modal" class="modal">
+        <div class="card" style="width: 100%; max-width: 400px;">
+            <h2 class="header__title" style="margin-bottom: var(--spacing-md);">Acceso Cliente</h2>
+            <div class="form">
+                <div class="form__group">
+                    <label class="form__label" for="auth-email">Email</label>
+                    <input type="email" id="auth-email" placeholder="tu@email.com">
+                </div>
+                <div class="form__group">
+                    <label class="form__label" for="auth-pass">Contraseña</label>
+                    <input type="password" id="auth-pass" placeholder="******">
+                </div>
+                <button class="button button--primary button--block" id="btn-login">Ingresar</button>
+                <p style="text-align: center; font-size: 0.8rem; color: var(--color-text-muted);">
+                    ¿No tienes cuenta? <a href="#" id="link-signup" style="color: var(--color-accent-primary);">Regístrate</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="profile-modal" class="modal hidden">
+        <div class="card" style="width: 100%; max-width: 400px;">
+            <h2 class="header__title">Completa tu Perfil</h2>
+            <p style="font-size: 0.8rem; margin-bottom: var(--spacing-md);">Solo la primera vez</p>
+            <div class="form">
+                <input type="text" id="prof-name" placeholder="Nombre Completo">
+                <input type="tel" id="prof-phone" placeholder="Teléfono de Contacto">
+                <button class="button button--primary button--block" id="btn-save-profile">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <header class="header">
+            <span class="header__title">MotoRDT Cliente</span>
+            <button class="button" id="btn-logout" style="background: transparent; color: var(--color-accent-error); font-size: 0.8rem;">Cerrar Sesión</button>
+        </header>
+
+        <section class="card">
+            <h3 style="margin-bottom: var(--spacing-sm);">Nuevo Pedido</h3>
+            <div class="form">
+                <input type="text" id="order-origin" placeholder="📍 Punto de Origen">
+                <input type="text" id="order-dest" placeholder="🏁 Punto de Destino">
+                <textarea id="order-desc" placeholder="📦 ¿Qué llevamos?" rows="2"></textarea>
+                <button class="button button--primary button--block" id="btn-create-order">Solicitar Moto</button>
+            </div>
+        </section>
+
+        <section>
+            <h3 style="margin-bottom: var(--spacing-sm);">Mis Pedidos</h3>
+            <div id="orders-container" class="order-list">
+                <!-- Pedidos inyectados por JS -->
+            </div>
+        </section>
+    </div>
+
+    <div id="chat-container" class="chat-widget hidden">
+        <div class="chat-widget__header">Chat con el Repartidor</div>
+        <div id="chat-messages" class="chat-widget__messages"></div>
+        <div style="padding: var(--spacing-xs); display: flex; gap: 5px;">
+            <input type="text" id="chat-input" placeholder="Escribe..." style="flex:1;">
+            <button class="button button--primary" id="btn-send-msg">➤</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://aodoaefxnnpgjwcyfixx.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_RRSZspZq5acSI3J_eT4HUg_Txykyu2S';
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentUser = null;
+        let activeChatOrder = null;
+
+        // AUTH LOGIC
+        async function checkSession() {
+            const { data: { session } } = await sb.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                document.getElementById('auth-modal').classList.add('hidden');
+                checkProfile();
+                loadOrders();
+                subscribeToChanges();
+            }
+        }
+
+        document.getElementById('btn-login').onclick = async () => {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-pass').value;
+            const { data, error } = await sb.auth.signInWithPassword({ email, password });
+            if (error) alert("Error: " + error.message);
+            else checkSession();
+        };
+
+        document.getElementById('link-signup').onclick = async () => {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-pass').value;
+            const { data, error } = await sb.auth.signUp({ email, password });
+            if (error) alert("Error: " + error.message);
+            else alert("¡Registro exitoso! Verifica tu email e ingresa.");
+        };
+
+        document.getElementById('btn-logout').onclick = async () => {
+            await sb.auth.signOut();
+            location.reload();
+        };
+
+        // PROFILE LOGIC
+        async function checkProfile() {
+            const { data, error } = await sb
+                .from('"PERFILES"')
+                .select('*')
+                .eq('id', currentUser.id)
+                .single();
+            
+            if (!data) {
+                document.getElementById('profile-modal').classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('btn-save-profile').onclick = async () => {
+            const nombre = document.getElementById('prof-name').value;
+            const telefono = document.getElementById('prof-phone').value;
+            const { error } = await sb.from('"PERFILES"').insert({
+                id: currentUser.id,
+                nombre_completo: nombre,
+                telefono: telefono,
+                tipo_usuario: 'cliente'
+            });
+            if (error) alert(error.message);
+            else document.getElementById('profile-modal').classList.add('hidden');
+        };
+
+        // ORDERS LOGIC
+        document.getElementById('btn-create-order').onclick = async () => {
+            const origin = document.getElementById('order-origin').value;
+            const dest = document.getElementById('order-dest').value;
+            const desc = document.getElementById('order-desc').value;
+
+            if(!origin || !dest) return alert("Completa origen y destino");
+
+            const { error } = await sb.from('"pedidos"').insert({
+                cliente_id: currentUser.id,
+                descripcion: `${origin} -> ${dest} | ${desc}`,
+                estado: 'pendiente',
+                monto: 0
+            });
+
+            if (error) alert(error.message);
+            else {
+                alert("Pedido creado. Buscando moto...");
+                document.getElementById('order-origin').value = '';
+                document.getElementById('order-dest').value = '';
+                document.getElementById('order-desc').value = '';
+            }
+        };
+
+        async function loadOrders() {
+            const { data } = await sb
+                .from('"pedidos"')
+                .select('*, "PERFILES"(nombre_completo)')
+                .eq('cliente_id', currentUser.id)
+                .order('created_at', { ascending: false });
+            
+            renderOrders(data);
+        }
+
+        function renderOrders(orders) {
+            const container = document.getElementById('orders-container');
+            container.innerHTML = orders.map(o => `
+                <div class="order-card order-card--${o.estado}" onclick="openChat('${o.id}', '${o.estado}')">
+                    <span class="status-badge">${o.estado.toUpperCase()}</span>
+                    <strong>Pedido #${o.id.split('-')[0]}</strong>
+                    <p style="font-size: 0.8rem; color: var(--color-text-muted);">${o.descripcion}</p>
+                    ${o.motomandado_id ? `<small style="color: var(--color-accent-primary);">Moto: ${o.motomandado_id.split('-')[0]}</small>` : ''}
+                </div>
+            `).join('');
+        }
+
+        // REALTIME
+        function subscribeToChanges() {
+            sb
+                .channel('pedidos-cliente')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos', filter: `cliente_id=eq.${currentUser.id}` }, 
+                payload => {
+                    loadOrders();
+                    if (activeChatOrder && payload.new.id === activeChatOrder) {
+                        checkChatStatus(payload.new.estado);
+                    }
+                })
+                .subscribe();
+        }
+        function checkChatStatus(estado) {
+            if (estado === 'entregado') {
+                document.getElementById('chat-container').classList.add('hidden');
+                activeChatOrder = null;
+                alert("El pedido ha sido entregado. Chat cerrado.");
+            }
+        }
+
+        // CHAT LOGIC
+        function openChat(orderId, estado) {
+            if (estado !== 'en_viaje') {
+                alert("El chat se activa cuando el pedido está 'en_viaje'");
+                return;
+            }
+            activeChatOrder = orderId;
+            document.getElementById('chat-container').classList.remove('hidden');
+            loadMessages();
+            subscribeToChat();
+        }
+
+        async function loadMessages() {
+            const { data } = await sb
+                .from('"mensajes_chat"')
+                .select('*')
+                .eq('id_pedido', activeChatOrder)
+                .order('created_at', { ascending: true });
+            
+            const chatBox = document.getElementById('chat-messages');
+            chatBox.innerHTML = data.map(m => `
+                <div class="message ${m.remitente_id === currentUser.id ? 'message--client' : 'message--moto'}">
+                    ${m.contenido}
+                </div>
+            `).join('');
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        document.getElementById('btn-send-msg').onclick = async () => {
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if(!msg) return;
+
+            const { error } = await sb.from('"mensajes_chat"').insert({
+                id_pedido: activeChatOrder,
+                remitente_id: currentUser.id,
+                contenido: msg
+            });
+            if(!error) input.value = '';
+        };
+
+        function subscribeToChat() {
+            sb.channel(`chat-${activeChatOrder}`)
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes_chat', filter: `id_pedido=eq.${activeChatOrder}` }, 
+                loadMessages)
+                .subscribe();
+        }
+
+        checkSession();
+    </script>
+</body>
+</html>

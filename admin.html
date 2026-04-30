@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Admin - MotomandadoRDT</title>
+    <link rel="stylesheet" href="variables.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+        }
+
+        .header-admin {
+            padding: var(--spacing-md);
+            background: var(--color-bg-secondary);
+            border-bottom: 1px solid var(--color-accent-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-container {
+            background: var(--color-bg-secondary);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgba(255,255,255,0.05);
+            text-align: left;
+            padding: var(--spacing-sm);
+            color: var(--color-accent-primary);
+            text-transform: uppercase;
+            font-size: 0.7rem;
+        }
+
+        td {
+            padding: var(--spacing-sm);
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .driver-active { color: var(--color-accent-success); font-weight: bold; }
+        .driver-inactive { color: var(--color-text-muted); }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--color-accent-error);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            border: 1px solid var(--color-accent-error);
+        }
+
+        .btn-delete:hover {
+            background: var(--color-accent-error);
+            color: white;
+        }
+
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--color-bg-primary);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 5000;
+        }
+
+        .hidden { display: none !important; }
+
+        .summary-card {
+            background: var(--gradient-primary);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            color: var(--color-bg-primary);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="admin-auth" class="modal">
+        <div class="card" style="width:100%; max-width:400px; padding:2rem; background: var(--color-bg-secondary); border-radius:1rem;">
+            <h1 style="margin-bottom:1.5rem; text-align:center;">PANEL ADMINISTRADOR</h1>
+            <label class="form__label" for="email">Email Admin</label>
+            <input type="email" id="email" placeholder="Email Admin" style="width:100%; margin-bottom:10px;">
+            <label class="form__label" for="pass">Contraseña</label>
+            <input type="password" id="pass" placeholder="Password" style="width:100%; margin-bottom:20px;">
+            <button id="btn-login-admin" class="button button--primary button--block">ACCEDER AL CONTROL</button>
+        </div>
+    </div>
+
+    <div id="admin-content" class="hidden">
+        <header class="header-admin">
+            <h1 class="header__title">Panel de Control Global</h1>
+            <button id="btn-logout" style="background:transparent; color:var(--color-accent-error);">SALIR</button>
+        </header>
+
+        <main class="admin-grid">
+            <!-- Columna 1: Conductores -->
+            <section class="table-container">
+                <h3 style="padding:1rem;">Conductores en Tiempo Real</h3>
+                <table id="drivers-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+
+            <!-- Columna 2: Finanzas -->
+            <section class="table-container">
+                <h3 style="padding:1rem;">Recaudación por Conductor</h3>
+                <table id="finance-table">
+                    <thead>
+                        <tr>
+                            <th>Conductor</th>
+                            <th>Total Recaudado</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+
+            <!-- Columna 3: Usuarios Totales -->
+            <section class="table-container" style="grid-column: span 2;">
+                <h3 style="padding:1rem;">Gestión de Clientes</h3>
+                <table id="clients-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Teléfono</th>
+                            <th>Eliminar</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://aodoaefxnnpgjwcyfixx.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_RRSZspZq5acSI3J_eT4HUg_Txykyu2S';
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function checkAdmin() {
+            const { data: { session } } = await sb.auth.getSession();
+            if (session) {
+                const { data: profile } = await sb
+                    .from('"PERFILES"')
+                    .select('tipo_usuario')
+                    .eq('id', session.user.id)
+                    .single();
+                
+                if (profile && profile.tipo_usuario === 'admin') {
+                    document.getElementById('admin-auth').classList.add('hidden');
+                    document.getElementById('admin-content').classList.remove('hidden');
+                    initDashboard();
+                } else {
+                    alert("ACCESO DENEGADO: No eres administrador.");
+                    await sb.auth.signOut();
+                }
+            }
+        }
+
+        async function initDashboard() {
+            loadDrivers();
+            loadFinance();
+            loadClients();
+            subscribeRealtime();
+        }
+
+        async function loadDrivers() {
+            const { data } = await sb
+                .from('"PERFILES"')
+                .select('*')
+                .eq('tipo_usuario', 'repartidor');
+            
+            const tbody = document.querySelector('#drivers-table tbody');
+            tbody.innerHTML = data && data.length ? data.map(d => `
+                <tr>
+                    <td>${d.nombre_completo}</td>
+                    <td class="${d.esta_activo ? 'driver-active' : 'driver-inactive'}">
+                        ${d.esta_activo ? '● ACTIVO' : '○ OFF'}
+                    </td>
+                    <td><button class="btn-delete" onclick="deleteUser('${d.id}')">BAJA</button></td>
+                </tr>
+            `).join('') : '';
+        }
+
+        async function loadClients() {
+            const { data } = await sb
+                .from('"PERFILES"')
+                .select('*')
+                .eq('tipo_usuario', 'cliente');
+            
+            const tbody = document.querySelector('#clients-table tbody');
+            tbody.innerHTML = data && data.length ? data.map(c => `
+                <tr>
+                    <td>${c.nombre_completo}</td>
+                    <td>${c.telefono}</td>
+                    <td><button class="btn-delete" onclick="deleteUser('${c.id}')">ELIMINAR</button></td>
+                </tr>
+            `).join('') : '';
+        }
+
+        async function loadFinance() {
+            // Sumamos los pedidos entregados por cada conductor
+            const { data: drivers } = await sb.from('"PERFILES"').select('id, nombre_completo').eq('tipo_usuario', 'repartidor');
+            const { data: orders } = await sb.from('"pedidos"').select('motomandado_id, monto').eq('estado', 'entregado');
+
+            const financeTable = document.querySelector('#finance-table tbody');
+            if(drivers && orders) {
+                financeTable.innerHTML = drivers.map(d => {
+                    const total = orders
+                        .filter(o => o.motomandado_id === d.id)
+                        .reduce((sum, o) => sum + (o.monto || 0), 0);
+                    return `
+                        <tr>
+                            <td>${d.nombre_completo}</td>
+                            <td style="color:var(--color-accent-success); font-weight:bold;">$${total}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        async function deleteUser(id) {
+            if (confirm("¿Estás seguro de eliminar este perfil? Esta acción es irreversible.")) {
+                const { error } = await sb.from('"PERFILES"').delete().eq('id', id);
+                if (error) alert("Error al eliminar: " + error.message);
+                else initDashboard();
+            }
+        }
+
+        function subscribeRealtime() {
+            // Escuchar cambios en perfiles y pedidos para actualizar el panel de Saul
+            sb.channel('admin-control')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'PERFILES' }, loadDrivers)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, loadFinance)
+                .subscribe();
+        }
+
+        document.getElementById('btn-login-admin').onclick = async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('pass').value;
+            const { error } = await sb.auth.signInWithPassword({ email, password });
+            if (error) alert(error.message);
+            else checkAdmin();
+        };
+
+        document.getElementById('btn-logout').onclick = async () => {
+            await sb.auth.signOut();
+            location.reload();
+        };
+
+        checkAdmin();
+    </script>
+</body>
+</html>
