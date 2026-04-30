@@ -162,6 +162,26 @@
         .auth-box hr { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0; }
         .auth-box h2 { color: white; margin-bottom: 10px; }
         .auth-box p { color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 5px; }
+
+        /* Modal Alerta Asignación */
+        .assignment-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 6000; padding: 20px;
+        }
+        .assignment-card {
+            background: var(--color-bg-secondary);
+            border: 2px solid var(--color-accent-primary);
+            border-radius: var(--radius-md);
+            padding: 2rem; width: 100%; max-width: 400px; text-align: center;
+        }
+        .timer-circle {
+            width: 80px; height: 80px; border-radius: 50%;
+            border: 4px solid var(--color-accent-primary);
+            display: flex; align-items: center; justify-content: center;
+            margin: 20px auto; font-size: 2rem; font-weight: 700;
+        }
     </style>
 </head>
 <body>
@@ -280,6 +300,16 @@
         </div> <!-- End of app-container -->
     </div> <!-- End of driver-content -->
 
+    <div id="modal-asignacion" class="assignment-modal hidden">
+        <div class="assignment-card">
+            <h2 style="color:var(--color-accent-primary);">¡NUEVO PEDIDO!</h2>
+            <p id="asig-ruta" style="margin: 15px 0; font-size: 0.9rem;"></p>
+            <div class="timer-circle" id="asig-timer">60</div>
+            <button onclick="aceptarAsignacion()" class="button button--primary" style="width:100%; padding: 15px; font-size: 1.1rem;">ACEPTAR VIAJE</button>
+            <p style="margin-top: 15px; font-size: 0.7rem; color: var(--color-text-muted);">Si no respondes, pasarás a estar fuera de servicio.</p>
+        </div>
+    </div>
+
     <script>
         const SUPABASE_URL = 'https://aodoaefxnnpgjwcyfixx.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_RRSZspZq5acSI3J_eT4HUg_Txykyu2S';
@@ -359,9 +389,16 @@
 
         document.getElementById('toggle-active').onchange = async (e) => {
             const active = e.target.checked;
-            await sb.from('PERFILES').update({ esta_activo: active }).eq('id', currentUser.id);
+            const updateData = { esta_activo: active };
+            if (active) updateData.ultima_vez_libre = new Date().toISOString();
+            
+            await sb.from('PERFILES').update(updateData).eq('id', currentUser.id);
             updateStatusUI(active);
         };
+
+        async function updateFilaTimestamp() {
+            await sb.from('PERFILES').update({ ultima_vez_libre: new Date().toISOString() }).eq('id', currentUser.id);
+        }
 
         async function loadPool() {
             const { data } = await sb.from('pedidos').select('*').eq('estado', 'pendiente');
@@ -430,17 +467,73 @@
                 deliveries++;
                 document.getElementById('stat-earnings').innerText = `$${earnings}`;
                 document.getElementById('stat-count').innerText = deliveries;
+                await updateFilaTimestamp(); // Ir al final de la fila
                 checkActiveOrder();
             }
         }
 
         // REALTIME
         function subscribeRealtime() {
-            sb.channel('public:pedidos')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, payload => {
-                    loadPool();
+            // Escuchar pedidos asignados a MI
+            sb.channel('public:pedidos_asig')
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos', filter: `asignado_a=eq.${currentUser.id}` }, payload => {
+                    if (payload.new.estado === 'pendiente') {
+                        mostrarAlertaAsignacion(payload.new);
+                    }
+                })
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pedidos', filter: `asignado_a=eq.${currentUser.id}` }, payload => {
+                    mostrarAlertaAsignacion(payload.new);
                 })
                 .subscribe();
+        }
+
+        let asigTimer;
+        function mostrarAlertaAsignacion(pedido) {
+            activeOrder = pedido;
+            document.getElementById('asig-ruta').innerText = pedido.descripcion.split('|')[0];
+            document.getElementById('modal-asignacion').classList.remove('hidden');
+            
+            // Sonido de alerta (opcional, si el navegador lo permite)
+            try { new Audio('https://assets.mixkit.co/sfx/preview/mixkit-urgent-simple-beep-notification-1520.mp3').play(); } catch(e){}
+
+            let timeLeft = 60;
+            document.getElementById('asig-timer').innerText = timeLeft;
+            
+            if (asigTimer) clearInterval(asigTimer);
+            asigTimer = setInterval(async () => {
+                timeLeft--;
+                document.getElementById('asig-timer').innerText = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(asigTimer);
+                    rechazarPorTiempo();
+                }
+            }, 1000);
+        }
+
+        async function aceptarAsignacion() {
+            clearInterval(asigTimer);
+            const { error } = await sb.from('pedidos').update({
+                estado: 'en_viaje',
+                motomandado_id: currentUser.id
+            }).eq('id', activeOrder.id);
+            
+            if (!error) {
+                document.getElementById('modal-asignacion').classList.add('hidden');
+                checkActiveOrder();
+            }
+        }
+
+        async function rechazarPorTiempo() {
+            document.getElementById('modal-asignacion').classList.add('hidden');
+            // Ponerme fuera de servicio por no responder
+            await sb.from('PERFILES').update({ esta_activo: false }).eq('id', currentUser.id);
+            document.getElementById('toggle-active').checked = false;
+            updateStatusUI(false);
+            
+            // Liberar el pedido para que el watchdog del cliente lo reasigne
+            await sb.from('pedidos').update({ asignado_a: null }).eq('id', activeOrder.id);
+            activeOrder = null;
         }
 
         // CHAT (Same logic as client but different side)
@@ -522,7 +615,11 @@
             const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
             
             if (error) alert(error.message);
-            else checkDriver();
+            else {
+                // Al loguearse, entrar como disponible automáticamente
+                await sb.from('PERFILES').update({ esta_activo: true, ultima_vez_libre: new Date().toISOString() }).eq('id', data.user.id);
+                checkDriver();
+            }
         }
 
         document.getElementById('btn-logout').onclick = async () => {

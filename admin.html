@@ -239,24 +239,32 @@
         };
 
         async function loadDrivers() {
-            const { data } = await sb
+            const { data, error } = await sb
                 .from('PERFILES')
                 .select('*')
-                .eq('role', 'repartidor');
+                .eq('role', 'repartidor')
+                .order('ultima_vez_libre', { ascending: true }); // FIFO Queue
             
             const container = document.getElementById('admin-drivers');
             
+            if (error) {
+                container.innerHTML = `<p style="color:var(--color-accent-error); font-size:0.7rem;">Error: ${error.message}. Asegúrate de ejecutar el SQL en Supabase.</p>`;
+                console.error("Error cargando conductores:", error);
+                return;
+            }
+
             if (!data || data.length === 0) {
                 container.innerHTML = '<p style="text-align:center; color:var(--color-text-muted); font-size: 0.85rem;">No hay conductores registrados</p>';
             } else {
                 const activeCount = data.filter(d => d.esta_activo).length;
                 document.getElementById('a-conductores').textContent = activeCount;
 
-                container.innerHTML = data.map(d => `
-                    <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+                container.innerHTML = data.map((d, index) => `
+                    <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05); ${d.esta_activo ? 'border-left: 3px solid var(--color-accent-success); padding-left:10px;' : ''}">
+                        <div style="font-size: 0.8rem; font-weight: bold; color: var(--color-accent-primary); width: 25px;">${d.esta_activo ? (index + 1) + 'º' : '-'}</div>
                         <div style="flex:1;">
                             <div style="font-weight:600; font-size:1rem; color:var(--color-text-main);">${d.nombre_completo}</div>
-                            <div style="font-size:0.75rem; color:var(--color-text-muted);">Tel: ${d.telefono || '-'}</div>
+                            <div style="font-size:0.75rem; color:var(--color-text-muted);">Turno: ${d.esta_activo ? new Date(d.ultima_vez_libre).toLocaleTimeString() : 'Fuera de servicio'}</div>
                         </div>
                         <button onclick="toggleDriverStatus('${d.id}', ${!d.esta_activo})" style="background:transparent; border:none; padding:4px 8px; border-radius:4px; font-size:0.7rem; cursor:pointer; color:${d.esta_activo ? 'var(--color-accent-success)' : 'var(--color-text-muted)'}; background:${d.esta_activo ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.05)'}; font-weight:bold;">
                             ${d.esta_activo ? 'ACTIVO' : 'INACTIVO'}
@@ -326,7 +334,7 @@
                     .eq('id', userId);
 
                 if (error) {
-                    alert("Error al eliminar: " + error.message);
+                    alert("No se pudo eliminar: " + error.message + "\n(Es probable que el usuario tenga pedidos asociados)");
                 } else {
                     alert("Usuario eliminado con éxito");
                     // Recargamos ambas listas para estar seguros
@@ -371,6 +379,7 @@
                                 <td>
                                     <span style="font-size:0.65rem; padding:2px 6px; border-radius:4px; background:rgba(255,255,255,0.05); color:var(--color-text-muted);">
                                         ${o.estado.toUpperCase()}
+                                        ${o.estado === 'pendiente' && o.asignado_a ? '<br><small style="color:var(--color-accent-warning);">Asignado: Esperando...</small>' : ''}
                                     </span>
                                 </td>
                             </tr>

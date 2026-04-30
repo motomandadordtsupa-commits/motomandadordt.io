@@ -337,16 +337,24 @@
         async function calcularDistancia(origen, destino) {
             const ciudad = configGlobal.ciudad;
             const provincia = configGlobal.provincia;
+            const pais = "Argentina";
             
-            // Intento con Georef API Argentina
             try {
+                // 1. Geocodificación con Nominatim (OpenStreetMap)
                 const getCoords = async (dir) => {
-                    const url = `https://apis.datos.gob.ar/georef/api/direcciones?direccion=${encodeURIComponent(dir)}&localidad=${encodeURIComponent(ciudad)}&provincia=${encodeURIComponent(provincia)}&max=1`;
-                    const res = await fetch(url);
-                    const data = await res.json();
-                    if (data.direcciones && data.direcciones.length > 0) {
-                        return data.direcciones[0].ubicacion;
-                    }
+                    const queryFull = `${dir}, ${ciudad}, ${provincia}, ${pais}`;
+                    const resFull = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(queryFull)}&format=json&limit=1`);
+                    const dataFull = await resFull.json();
+                    if (dataFull && dataFull.length > 0) return { lat: dataFull[0].lat, lon: dataFull[0].lon };
+
+                    // Fallback 1: Buscar solo la calle (si el número falla)
+                    const calleMatch = dir.match(/^(.+?)\s+(\d+)\s*$/);
+                    const calleSolo = calleMatch ? calleMatch[1] : dir;
+                    const queryCalle = `${calleSolo}, ${ciudad}, ${provincia}, ${pais}`;
+                    const resCalle = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(queryCalle)}&format=json&limit=1`);
+                    const dataCalle = await resCalle.json();
+                    if (dataCalle && dataCalle.length > 0) return { lat: dataCalle[0].lat, lon: dataCalle[0].lon };
+
                     return null;
                 };
 
@@ -354,6 +362,22 @@
                 const c2 = await getCoords(destino);
 
                 if (c1 && c2) {
+                    // 2. Ruteo Real con OSRM (Ruta por calle)
+                    const routeUrl = `https://router.project-osrm.org/route/v1/driving/${c1.lon},${c1.lat};${c2.lon},${c2.lat}?overview=false`;
+                    const routeRes = await fetch(routeUrl);
+                    const routeData = await routeRes.json();
+
+                    if (routeData.code === 'Ok' && routeData.routes.length > 0) {
+                        const metros = routeData.routes[0].distance;
+                        const cuadras = Math.max(1, Math.round(metros / 100));
+                        const km = (metros / 1000).toFixed(1);
+                        return { 
+                            cuadras, 
+                            detalle: `Ruta real: ${km} km (~${cuadras} cuadras)` 
+                        };
+                    }
+                    
+                    // Fallback a Haversine si OSRM falla
                     const R = 6371e3;
                     const φ1 = c1.lat * Math.PI/180;
                     const φ2 = c2.lat * Math.PI/180;
@@ -361,13 +385,15 @@
                     const Δλ = (c2.lon-c1.lon) * Math.PI/180;
                     const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
                     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                    const metros = R * c;
-                    const cuadras = Math.max(1, Math.round(metros / 100));
-                    return { cuadras, detalle: "Calculado por GPS (Línea recta)" };
+                    const metrosH = R * c;
+                    const cuadrasH = Math.max(1, Math.round(metrosH / 100));
+                    return { cuadras: cuadrasH, detalle: "Calculado por GPS (Línea recta)" };
                 }
-            } catch (e) { console.warn("Error API Georef:", e); }
+            } catch (e) { 
+                console.warn("Error en motores de mapa:", e); 
+            }
 
-            // Fallback manual por numeración
+            // 3. Fallback manual por numeración si todo lo demás falla
             return calcularPorNumeracion(origen, destino);
         }
 
@@ -526,26 +552,84 @@
             // Si no se calculó aún, forzamos uno rápido
             if (currentCalculation.monto === 0) await presupuestarPedido();
 
-            const { error } = await sb.from('pedidos').insert({
+            // Buscar primer conductor en la fila (FIFO)
+            const { data: conductors } = await sb
+                .from('PERFILES')
+                .select('id')
+                .eq('role', 'repartidor')
+                .eq('esta_activo', true)
+                .order('ultima_vez_libre', { ascending: true })
+                .limit(1);
+
+            const nextDriverId = conductors && conductors.length > 0 ? conductors[0].id : null;
+
+            const { data: newOrder, error } = await sb.from('pedidos').insert({
                 cliente_id: currentUser.id,
                 descripcion: `${origin} -> ${dest} | ${desc}`,
                 estado: 'pendiente',
                 monto: currentCalculation.monto,
                 distancia_cuadras: currentCalculation.cuadras,
-                costo_compra: compra
-            });
+                costo_compra: compra,
+                asignado_a: nextDriverId,
+                asignado_en: nextDriverId ? new Date().toISOString() : null
+            }).select().single();
 
             if (error) alert(error.message);
             else {
-                alert("Pedido creado. Buscando moto...");
+                alert(nextDriverId ? "Pedido creado. Esperando respuesta del conductor..." : "Pedido creado. No hay conductores libres, buscando...");
                 document.getElementById('order-origin').value = '';
                 document.getElementById('order-dest').value = '';
                 document.getElementById('order-desc').value = '';
                 document.getElementById('order-compra').value = '';
                 document.getElementById('price-preview').classList.add('hidden');
+                
+                if (newOrder) startAssignmentWatchdog(newOrder.id);
+                
                 currentCalculation = { cuadras: 0, monto: 0 };
             }
         };
+
+        // Monitoreo de asignación (Watchdog)
+        let watchdogInterval;
+        function startAssignmentWatchdog(orderId) {
+            if (watchdogInterval) clearInterval(watchdogInterval);
+            watchdogInterval = setInterval(async () => {
+                const { data: order } = await sb.from('pedidos').select('*').eq('id', orderId).single();
+                
+                if (!order || order.estado !== 'pendiente') {
+                    clearInterval(watchdogInterval);
+                    if (order?.estado === 'en_viaje') alert("¡Conductor asignado! Ya viene en camino.");
+                    return;
+                }
+
+                const asignadoEn = new Date(order.asignado_en);
+                const ahora = new Date();
+                const diffSecs = (ahora - asignadoEn) / 1000;
+
+                if (!order.asignado_a || diffSecs > 60) {
+                    console.log("Re-asignando pedido por tiempo excedido o falta de conductor...");
+                    reasignarPedido(orderId);
+                }
+            }, 10000);
+        }
+
+        async function reasignarPedido(orderId) {
+            // Buscar el siguiente conductor (excluyendo al que no respondió si es posible)
+            const { data: conductors } = await sb
+                .from('PERFILES')
+                .select('id')
+                .eq('role', 'repartidor')
+                .eq('esta_activo', true)
+                .order('ultima_vez_libre', { ascending: true })
+                .limit(1);
+
+            const nextDriverId = conductors && conductors.length > 0 ? conductors[0].id : null;
+
+            await sb.from('pedidos').update({
+                asignado_a: nextDriverId,
+                asignado_en: nextDriverId ? new Date().toISOString() : null
+            }).eq('id', orderId);
+        }
 
         async function loadOrders() {
             const { data, error } = await sb
