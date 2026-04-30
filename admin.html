@@ -162,11 +162,13 @@
        async function checkAdmin() {
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
-        const { data: profile } = await sb
-            .from('"PERFILES"')
-            .select('role') // ANTES DECÍA tipo_usuario
+        const { data: profile, error } = await sb
+            .from('PERFILES')
+            .select('role')
             .eq('id', session.user.id)
             .single();
+        
+        if (error) console.error("Error de Supabase:", error);
         
         if (profile && profile.role === 'admin') { // ANTES DECÍA tipo_usuario
             document.getElementById('admin-auth').classList.add('hidden');
