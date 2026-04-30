@@ -392,8 +392,14 @@
             const updateData = { esta_activo: active };
             if (active) updateData.ultima_vez_libre = new Date().toISOString();
             
-            await sb.from('PERFILES').update(updateData).eq('id', currentUser.id);
-            updateStatusUI(active);
+            const { error } = await sb.from('PERFILES').update(updateData).eq('id', currentUser.id);
+            if (error) {
+                alert("Error actualizando estado en base de datos: " + error.message);
+                e.target.checked = !active; // Revertir UI
+                updateStatusUI(!active);
+            } else {
+                updateStatusUI(active);
+            }
         };
 
         async function updateFilaTimestamp() {
