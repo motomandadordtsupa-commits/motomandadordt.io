@@ -280,6 +280,15 @@
 
             if (currentCalculation.monto === 0) return alert("Espera a que termine de calcular la ruta.");
 
+            // --- NUEVO: Control de Demanda ---
+            const { count: activosCount } = await sb.from('PERFILES').select('*', { count: 'exact', head: true }).eq('role', 'repartidor').eq('esta_activo', true);
+            const { count: pendientesCount } = await sb.from('pedidos').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente');
+            
+            if (pendientesCount >= (activosCount || 0) * 2) {
+                return alert("En este momento la demanda es alta. Aguarde y vuelva a intentar en un minuto.");
+            }
+            // ---------------------------------
+
             const { data: nextD } = await sb.from('PERFILES').select('id').eq('role', 'repartidor').eq('esta_activo', true).order('ultima_vez_libre', { ascending: true }).limit(1);
             const driverId = nextD && nextD.length > 0 ? nextD[0].id : null;
 
