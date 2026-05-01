@@ -189,11 +189,44 @@
                     const rData = await route.json();
                     if (rData.code === 'Ok') {
                         const m = rData.routes[0].distance;
-                        return { cuadras: Math.max(1, Math.round(m/100)), detalle: `Ruta real: ${(m/1000).toFixed(1)} km` };
+                        return { cuadras: Math.max(1, Math.round(m/100)), detalle: `Ruta real GPS: ${(m/1000).toFixed(1)} km` };
                     }
                 }
             } catch(e){}
-            return { cuadras: 5, detalle: "Cálculo manual (Estimado)" };
+            
+            // Failsafe: Cálculo manual matemático si el GPS falla
+            try {
+                // Buscamos el primer bloque de números en la dirección escrita
+                const numOrigen = origen.match(/\d+/) ? parseInt(origen.match(/\d+/)[0]) : 0;
+                const numDestino = destino.match(/\d+/) ? parseInt(destino.match(/\d+/)[0]) : 0;
+                
+                if (numOrigen > 0 || numDestino > 0) {
+                    const diferenciaNumeros = Math.abs(numDestino - numOrigen);
+                    const divisor = configGlobal.numeros_por_cuadra || 50;
+                    let cuadrasEstimadas = Math.round(diferenciaNumeros / divisor);
+                    
+                    // Si son calles diferentes, sumamos unas 4 cuadras "transversales" promedio
+                    const calleOrig = origen.replace(/\d+/g, '').trim().toLowerCase();
+                    const calleDest = destino.replace(/\d+/g, '').trim().toLowerCase();
+                    if (calleOrig !== calleDest) {
+                        cuadrasEstimadas += 4; 
+                    }
+                    
+                    // Aseguramos un mínimo de 1 cuadra, y un máximo de 60 para evitar tarifas locas
+                    // si por error el cliente escribe su número de teléfono en lugar de la altura
+                    cuadrasEstimadas = Math.max(1, Math.min(cuadrasEstimadas, 60));
+                    
+                    return { 
+                        cuadras: cuadrasEstimadas, 
+                        detalle: `Cálculo manual estimado (~${cuadrasEstimadas}c)` 
+                    };
+                }
+            } catch(ex) {
+                console.error("Error en cálculo manual:", ex);
+            }
+
+            // Último recurso si no escriben números (ej. "San Martin y Belgrano")
+            return { cuadras: 5, detalle: "Tarifa Base Promedio" };
         }
 
         // ORDERS & TIMEOUT
