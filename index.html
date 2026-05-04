@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motomandado — Carpeta Corporativa</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a0a;--s1:#111;--s2:#181818;--s3:#242424;--acc:#f5a623;--grn:#27ae60;--red:#e74c3c;--txt:#f0ece6;--muted:#888;--hint:#444}
+body{background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif;line-height:1.6}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;background:#0a0a0aee;backdrop-filter:blur(12px);border-bottom:1px solid var(--s3);padding:14px 40px;display:flex;align-items:center;justify-content:space-between;z-index:100}
+.nav-brand{font-family:'Bebas Neue',cursive;font-size:24px;color:var(--acc);letter-spacing:1px}
+.nav-links{display:flex;gap:24px}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:13px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;transition:.2s}
+.nav-links a:hover{color:var(--acc)}
+
+/* PORTADA */
+.portada{min-height:100vh;display:flex;align-items:center;background:radial-gradient(ellipse 70% 70% at 50% 50%,#1a0f00 0%,var(--bg) 70%);padding:100px 80px 60px;position:relative;overflow:hidden}
+.portada::before{content:'🏍';position:absolute;right:10%;top:50%;transform:translateY(-50%);font-size:280px;opacity:.05;pointer-events:none}
+.portada-inner{max-width:700px}
+.portada-badge{display:inline-flex;align-items:center;gap:8px;background:#1a0f00;border:1px solid var(--acc);color:var(--acc);padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:28px}
+.portada h1{font-family:'Bebas Neue',cursive;font-size:clamp(72px,12vw,130px);color:var(--acc);line-height:.9;letter-spacing:1px;margin-bottom:24px}
+.portada-sub{font-size:clamp(18px,2.5vw,24px);font-weight:300;color:var(--txt);max-width:520px;margin-bottom:40px}
+.portada-sub strong{color:var(--acc);font-weight:600}
+.portada-tags{display:flex;flex-wrap:wrap;gap:10px}
+.tag{background:var(--s2);border:1px solid var(--s3);padding:6px 16px;border-radius:20px;font-size:13px;color:var(--muted)}
+.tag.hi{border-color:var(--acc);color:var(--acc);background:#1a0f00}
+
+/* SECCIONES */
+.sec{padding:100px 80px;max-width:1100px;margin:0 auto}
+.sec-label{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--acc);margin-bottom:12px}
+.sec-title{font-family:'Bebas Neue',cursive;font-size:clamp(36px,5vw,54px);color:var(--txt);line-height:1.05;margin-bottom:16px}
+.sec-desc{font-size:16px;color:var(--muted);max-width:580px;margin-bottom:48px}
+
+/* GRID CARDS */
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px}
+.card{background:var(--s1);border:1px solid var(--s3);border-radius:16px;padding:28px;transition:.2s}
+.card:hover{border-color:var(--acc);transform:translateY(-2px)}
+.card-ico{font-size:32px;margin-bottom:14px;display:block}
+.card h3{font-size:17px;font-weight:700;margin-bottom:8px}
+.card p{font-size:14px;color:var(--muted);line-height:1.6}
+
+/* DIVIDER */
+.div{border:none;border-top:1px solid var(--s3);margin:0 80px}
+
+/* METRICAS */
+.metricas{background:linear-gradient(135deg,#1a0f00,#111);border:1px solid #2a1800;border-radius:20px;padding:48px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:40px;text-align:center}
+.met-val{font-family:'Bebas Neue',cursive;font-size:60px;color:var(--acc);line-height:1}
+.met-lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:8px}
+
+/* FLUJO */
+.flujo{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:4px;margin-top:40px}
+.fl-step{padding:28px 20px;text-align:center;background:var(--s1);border:1px solid var(--s3);border-radius:12px;position:relative}
+.fl-num{width:48px;height:48px;background:var(--acc);color:#111;border-radius:50%;font-family:'Bebas Neue',cursive;font-size:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.fl-step h4{font-size:15px;font-weight:700;margin-bottom:6px}
+.fl-step p{font-size:13px;color:var(--muted);line-height:1.5}
+
+/* COMPARATIVA */
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;padding:14px 20px;background:var(--s2);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid var(--acc)}
+td{padding:14px 20px;border-bottom:1px solid var(--s3);color:var(--muted)}
+tr:first-child td{color:var(--txt);font-weight:600}
+.check{color:var(--grn);font-size:18px}
+.cross{color:var(--red);font-size:18px}
+.hi-col{background:#1a0f0030}
+
+/* PLANES */
+.planes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.plan{background:var(--s1);border:1px solid var(--s3);border-radius:16px;padding:32px;text-align:center}
+.plan.featured{background:linear-gradient(135deg,#1a0f00,#141414);border:2px solid var(--acc);position:relative}
+.plan.featured::before{content:'RECOMENDADO';position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--acc);color:#111;font-size:10px;font-weight:800;letter-spacing:2px;padding:4px 14px;border-radius:20px}
+.plan-name{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:14px}
+.plan-val{font-family:'Bebas Neue',cursive;font-size:52px;color:var(--acc);line-height:1;margin-bottom:4px}
+.plan-per{font-size:12px;color:var(--hint);margin-bottom:24px}
+.plan ul{list-style:none;text-align:left;margin-bottom:28px}
+.plan ul li{font-size:14px;color:var(--muted);padding:7px 0;border-bottom:1px solid var(--s3);display:flex;align-items:center;gap:8px}
+.plan ul li::before{content:'✓';color:var(--grn);font-weight:700;flex-shrink:0}
+.btn{display:block;width:100%;padding:14px;border-radius:10px;font-family:'Bebas Neue',cursive;font-size:18px;letter-spacing:1px;text-decoration:none;text-align:center;border:none;cursor:pointer;transition:.15s}
+.btn-acc{background:var(--acc);color:#111}
+.btn-acc:hover{background:#f0b030}
+.btn-out{background:transparent;border:2px solid var(--s3);color:var(--muted)}
+.btn-out:hover{border-color:var(--acc);color:var(--acc)}
+
+/* CTA FINAL */
+.cta{background:linear-gradient(135deg,#1a0f00,#0a0a0a);border-top:1px solid var(--s3);padding:100px 80px;text-align:center}
+.cta h2{font-family:'Bebas Neue',cursive;font-size:clamp(44px,7vw,72px);color:var(--acc);margin-bottom:16px}
+.cta p{font-size:18px;color:var(--muted);max-width:500px;margin:0 auto 40px}
+.cta-row{display:flex;justify-content:center;gap:16px;flex-wrap:wrap}
+.cta-row a{padding:16px 44px;border-radius:12px;font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:1px;text-decoration:none;transition:.15s}
+.cta-row .p{background:var(--acc);color:#111}
+.cta-row .p:hover{background:#f0b030;transform:scale(1.03)}
+.cta-row .s{background:transparent;border:2px solid var(--s3);color:var(--muted)}
+.cta-row .s:hover{border-color:var(--acc);color:var(--acc)}
+
+footer{text-align:center;padding:24px;border-top:1px solid var(--s3);font-size:12px;color:var(--hint)}
+
+@media(max-width:700px){
+  .portada,.sec,.div,.cta{padding-left:24px;padding-right:24px}
+  nav{padding:14px 20px}
+  .nav-links{display:none}
+  .portada::before{display:none}
+  .metricas{padding:28px 20px;gap:28px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">🏍 Motomandado</div>
+  <div class="nav-links">
+    <a href="#problema">Problema</a>
+    <a href="#solucion">Solución</a>
+    <a href="#como">Cómo funciona</a>
+    <a href="#diferencial">Diferencial</a>
+    <a href="#planes">Planes</a>
+    <a href="#contacto">Contacto</a>
+  </div>
+</nav>
+
+<!-- PORTADA -->
+<div class="portada">
+  <div class="portada-inner">
+    <div class="portada-badge">🏍 Carpeta Comercial 2025</div>
+    <h1>Moto<br>Mandado</h1>
+    <p class="portada-sub">La plataforma <strong>llave en mano</strong> para digitalizar el servicio de mandadería en cualquier ciudad argentina.</p>
+    <div class="portada-tags">
+      <span class="tag hi">✓ Sin app que instalar</span>
+      <span class="tag hi">✓ Listo en 24 hs</span>
+      <span class="tag">Panel Cliente Web</span>
+      <span class="tag">Panel Conductor</span>
+      <span class="tag">Despacho Automático</span>
+      <span class="tag">Multi-Ciudad</span>
+      <span class="tag">Historial en tiempo real</span>
+    </div>
+  </div>
+</div>
+
+<!-- PROBLEMA -->
+<section class="sec" id="problema">
+  <div class="sec-label">El problema</div>
+  <h2 class="sec-title">Las mandaderías del interior operan sin tecnología</h2>
+  <p class="sec-desc">WhatsApp, papel y llamadas telefónicas son el "sistema" de la mayoría. Eso genera errores, demoras, conflictos y pérdida de clientes.</p>
+  <div class="grid-3">
+    <div class="card">
+      <span class="card-ico">📵</span>
+      <h3>Sin registro de pedidos</h3>
+      <p>Los mandados se pierden, se olvidan o se duplican. No hay historial ni trazabilidad.</p>
+    </div>
+    <div class="card">
+      <span class="card-ico">🤷</span>
+      <h3>Conductores desorganizados</h3>
+      <p>No hay cola ordenada. El primero en ver el mensaje se lleva el viaje, sin criterio ni equidad.</p>
+    </div>
+    <div class="card">
+      <span class="card-ico">💸</span>
+      <h3>Precios inconsistentes</h3>
+      <p>Cada conductor cobra lo que quiere. No hay tarifa clara ni cálculo justo de distancia.</p>
+    </div>
+    <div class="card">
+      <span class="card-ico">📊</span>
+      <h3>Cero métricas del negocio</h3>
+      <p>Imposible saber cuánto facturaron, cuántos viajes hubo ni qué conductor trabajó mejor.</p>
+    </div>
+    <div class="card">
+      <span class="card-ico">⏱️</span>
+      <h3>Respuesta lenta</h3>
+      <p>El cliente espera respuesta manual. Cada minuto de demora es un cliente que llama a otro.</p>
+    </div>
+    <div class="card">
+      <span class="card-ico">😤</span>
+      <h3>Conflictos internos</h3>
+      <p>Sin reglas claras de asignación, los conductores se pelean por los pedidos más rentables.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="div">
+
+<!-- SOLUCIÓN -->
+<section class="sec" id="solucion">
+  <div class="sec-label">La solución</div>
+  <h2 class="sec-title">Un sistema completo, accesible desde cualquier celular</h2>
+  <p class="sec-desc">Motomandado digitaliza la operación entera. Clientes piden online, el sistema asigna automáticamente y los conductores ejecutan con seguimiento en tiempo real.</p>
+  <div class="grid-2">
+    <div class="card">
+      <span class="card-ico">📱</span>
+      <h3>Panel Cliente — Web</h3>
+      <p>Acceso desde cualquier navegador, sin instalar nada. El cliente ingresa origen y destino, recibe el precio calculado al instante y confirma con un toque. La pantalla de confirmación aparece de inmediato.</p>
+    </div>
+    <div class="card">
+      <span class="card-ico">🏍</span>
+      <h3>Panel Conductor — Web</h3>
+      <p>Los conductores se registran una sola vez con nombre, apellido, DNI y patente. Inician turno con dos datos y quedan automáticamente en la cola de disponibles.</p>
+    </div>
+    <div class="card">
+      <span class="card-ico">⚡</span>
+      <h3>Despacho Automático FIFO</h3>
+      <p>Al llegar un pedido, el sistema detecta el conductor disponible #1 en cola y le envía una alerta con todos los datos del viaje. Timer de 2 minutos para aceptar o se pasa al siguiente.</p>
+    </div>
+    <div class="card">
+      <span class="card-ico">📏</span>
+      <h3>Cálculo de Distancia Real</h3>
+      <p>Integración con la API oficial de cartografía argentina. Calcula kilómetros reales por GPS y genera el precio automáticamente según la tarifa configurada por el dueño del servicio.</p>
+    </div>
+    <div class="card">
+      <span class="card-ico">📊</span>
+      <h3>Historial y Control Total</h3>
+      <p>Cada pedido queda registrado: origen, destino, distancia, monto, conductor asignado, hora y estado. El dueño ve todo en tiempo real desde Google Sheets, en el celular o la PC.</p>
+    </div>
+    <div class="card">
+      <span class="card-ico">⚙️</span>
+      <h3>Configuración Flexible</h3>
+      <p>Precio base, precio por distancia, horario de operación y ciudad se configuran en minutos sin tocar código. Cada ciudad tiene sus propios parámetros y datos independientes.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="div">
+
+<!-- MÉTRICAS -->
+<section class="sec">
+  <div class="metricas">
+    <div><div class="met-val">24 hs</div><div class="met-lbl">De implementación</div></div>
+    <div><div class="met-val">$0</div><div class="met-lbl">Costo mensual de servidor</div></div>
+    <div><div class="met-val">100%</div><div class="met-lbl">Web · Sin app</div></div>
+    <div><div class="met-val">∞</div><div class="met-lbl">Ciudades escalables</div></div>
+  </div>
+</section>
+
+<hr class="div">
+
+<!-- CÓMO FUNCIONA -->
+<section class="sec" id="como">
+  <div class="sec-label">¿Cómo funciona?</div>
+  <h2 class="sec-title">De punta a punta en 4 pasos</h2>
+  <p class="sec-desc">El flujo completo desde que el cliente pide hasta que el viaje se cierra y queda registrado.</p>
+  <div class="flujo">
+    <div class="fl-step">
+      <div class="fl-num">1</div>
+      <h4>Cliente pide</h4>
+      <p>Ingresa origen y destino. Ve el precio calculado y confirma el pedido.</p>
+    </div>
+    <div class="fl-step">
+      <div class="fl-num">2</div>
+      <h4>Sistema asigna</h4>
+      <p>El conductor disponible #1 recibe la alerta con los datos del viaje y un timer.</p>
+    </div>
+    <div class="fl-step">
+      <div class="fl-num">3</div>
+      <h4>Conductor ejecuta</h4>
+      <p>Va al origen, retira el mandado y lo lleva al destino con seguimiento paso a paso.</p>
+    </div>
+    <div class="fl-step">
+      <div class="fl-num">4</div>
+      <h4>Viaje cerrado</h4>
+      <p>El conductor finaliza. Vuelve a la cola. Todo queda registrado automáticamente.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="div">
+
+<!-- DIFERENCIAL -->
+<section class="sec" id="diferencial">
+  <div class="sec-label">Diferencial competitivo</div>
+  <h2 class="sec-title">Motomandado vs las alternativas</h2>
+  <p class="sec-desc">Ninguna solución del mercado está pensada para mandaderías del interior argentino. Motomandado sí.</p>
+  <div style="overflow-x:auto;border-radius:16px;border:1px solid var(--s3)">
+    <table>
+      <tr>
+        <th>Característica</th>
+        <th class="hi-col">Motomandado</th>
+        <th>WhatsApp</th>
+        <th>Apps de delivery</th>
+        <th>Software genérico</th>
+      </tr>
+      <tr>
+        <td>Sin instalación de app</td>
+        <td class="hi-col check">✓</td>
+        <td class="check">✓</td>
+        <td class="cross">✗</td>
+        <td class="cross">✗</td>
+      </tr>
+      <tr>
+        <td>Asignación automática de conductores</td>
+        <td class="hi-col check">✓</td>
+        <td class="cross">✗</td>
+        <td class="check">✓</td>
+        <td>Parcial</td>
+      </tr>
+      <tr>
+        <td>Cálculo de distancia y precio</td>
+        <td class="hi-col check">✓</td>
+        <td class="cross">✗</td>
+        <td class="check">✓</td>
+        <td class="check">✓</td>
+      </tr>
+      <tr>
+        <td>Historial y métricas propias</td>
+        <td class="hi-col check">✓</td>
+        <td class="cross">✗</td>
+        <td>Solo la plataforma</td>
+        <td class="check">✓</td>
+      </tr>
+      <tr>
+        <td>Micro-comisiones fijas</td>
+        <td class="hi-col check">✓</td>
+        <td class="check">✓</td>
+        <td class="cross">✗</td>
+        <td class="cross">✗</td>
+      </tr>
+      <tr>
+        <td>Costo mensual de servidor</td>
+        <td class="hi-col" style="color:var(--grn);font-weight:700">$0</td>
+        <td style="color:var(--grn)">$0</td>
+        <td style="color:var(--red)">Alto</td>
+        <td style="color:var(--red)">Medio-Alto</td>
+      </tr>
+      <tr>
+        <td>Multi-ciudad / escalable</td>
+        <td class="hi-col check">✓</td>
+        <td class="cross">✗</td>
+        <td>Solo ciudades grandes</td>
+        <td class="check">✓</td>
+      </tr>
+      <tr>
+        <td>Implementación en 24 hs</td>
+        <td class="hi-col check">✓</td>
+        <td class="check">✓</td>
+        <td class="cross">✗</td>
+        <td class="cross">✗</td>
+      </tr>
+    </table>
+  </div>
+</section>
+
+<hr class="div">
+
+<!-- PLANES -->
+<section class="sec" id="planes">
+  <div class="sec-label">Planes e inversión</div>
+  <h2 class="sec-title">Planes adaptados a tu capital</h2>
+  <p class="sec-desc">Sin mensualidades fijas de hosting. Elige el equilibrio perfecto entre Inversión Inicial (Setup) y micro-comisión por viaje completado.</p>
+  <div class="planes">
+    <div class="plan">
+      <div class="plan-name">Independencia Total</div>
+      <div class="plan-val">$150.000</div>
+      <div class="plan-per">Setup Inicial · Comisión $50/viaje</div>
+      <ul>
+        <li>Panel cliente + conductor</li>
+        <li>Conductores ilimitados</li>
+        <li>Comisión más baja del mercado</li>
+        <li>Soporte y mantenimiento</li>
+      </ul>
+      <a href="https://wa.me/5491166508379?text=Hola!%20Me%20interesa%20adquirir%20un%20plan%20de%20Motomandado" class="btn btn-out" target="_blank">Consultar</a>
+    </div>
+    <div class="plan featured">
+      <div class="plan-name">Crecimiento Equilibrado</div>
+      <div class="plan-val">$100.000</div>
+      <div class="plan-per">Setup Inicial · Comisión $100/viaje</div>
+      <ul>
+        <li>Panel cliente + conductor</li>
+        <li>Conductores ilimitados</li>
+        <li>Balance perfecto de inversión</li>
+        <li>Soporte y mantenimiento</li>
+      </ul>
+      <a href="https://wa.me/5491166508379?text=Hola!%20Me%20interesa%20el%20Plan%20Equilibrado%20de%20Motomandado" class="btn btn-acc" target="_blank">Quiero este plan</a>
+    </div>
+    <div class="plan">
+      <div class="plan-name">Socios Estratégicos</div>
+      <div class="plan-val">$50.000</div>
+      <div class="plan-per">Setup Inicial · Comisión $150/viaje</div>
+      <ul>
+        <li>Panel cliente + conductor</li>
+        <li>Conductores ilimitados</li>
+        <li>Barrera de entrada mínima</li>
+        <li>Soporte y mantenimiento</li>
+      </ul>
+      <a href="https://wa.me/5491166508379?text=Hola!%20Me%20interesa%20el%20Plan%20Socios%20Estrategicos%20de%20Motomandado" class="btn btn-out" target="_blank">Elegir este plan</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<div class="cta" id="contacto">
+  <h2>Empezá mañana mismo</h2>
+  <p>Implementación en 24 hs. Sin servidores, sin complicaciones técnicas. <strong>Preguntá por nuestra Prueba Piloto de 14 días libre de comisiones.</strong></p>
+  <div class="cta-row">
+    <a href="https://wa.me/5491166508379?text=Hola!%20Quiero%20solicitar%20una%20demo%20del%20sistema%20Motomandado" class="p" target="_blank">Solicitar demo gratuita</a>
+    <a href="https://wa.me/5491166508379?text=Hola!%20Tengo%20algunas%20consultas%20sobre%20Motomandado" class="s" target="_blank">WhatsApp directo</a>
+  </div>
+</div>
+
+<footer>Motomandado © 2025 · Solución de logística urbana para el interior argentino · Todos los derechos reservados</footer>
+
+</body>
+</html>
