@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MotomandadoRDT - Conductor</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="variables.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -304,8 +305,8 @@
         <div class="assignment-card">
             <h2 style="color:var(--color-accent-primary);">¡NUEVO PEDIDO!</h2>
             <p id="asig-ruta" style="margin: 15px 0; font-size: 0.9rem;"></p>
-            <div class="timer-circle" id="asig-timer">60</div>
-            <button onclick="aceptarAsignacion()" class="button button--primary" style="width:100%; padding: 15px; font-size: 1.1rem;">ACEPTAR VIAJE</button>
+            <div class="timer-circle" id="asig-timer">120</div>
+            <button onclick="aceptarPedido()" class="button button--primary" style="width:100%; padding: 15px; font-size: 1.1rem;">ACEPTAR VIAJE</button>
             <p style="margin-top: 15px; font-size: 0.7rem; color: var(--color-text-muted);">Si no respondes, pasarás a estar fuera de servicio.</p>
         </div>
     </div>
@@ -381,6 +382,7 @@
             loadPool();
             checkActiveOrder();
             subscribeRealtime();
+            startSafetyPolling();
         }
 
         async function loadProfile() {
@@ -417,7 +419,12 @@
         }
 
         async function loadPool() {
-            const { data } = await sb.from('pedidos').select('*').eq('estado', 'pendiente');
+            // Solo mostrar pedidos PENDIENTES que NO tengan un conductor asignado todavía
+            const { data } = await sb.from('pedidos')
+                .select('*')
+                .eq('estado', 'pendiente')
+                .is('motomandado_id', null);
+            
             const container = document.getElementById('pool-container');
             container.innerHTML = data && data.length ? data.map(o => `
                 <div class="order-card">
@@ -430,37 +437,63 @@
 
         async function acceptOrder(id) {
             const { error } = await sb.from('pedidos').update({
-                estado: 'en_viaje',
+                estado: 'aceptado',
                 motomandado_id: currentUser.id
             }).eq('id', id);
             
-            if (!error) checkActiveOrder();
+            if (error) {
+                alert("No se pudo aceptar el pedido: " + error.message);
+            } else {
+                checkActiveOrder();
+            }
         }
 
         async function checkActiveOrder() {
+            // Incluimos 'pendiente' para detectar si nos asignaron algo mientras no mirábamos
+            const activeStates = ['pendiente', 'aceptado', 'en_origen', 'en_viaje', 'en_destino'];
             const { data } = await sb.from('pedidos')
                 .select('*')
                 .eq('motomandado_id', currentUser.id)
-                .eq('estado', 'en_viaje')
+                .in('estado', activeStates)
                 .maybeSingle();
             
             if (data) {
                 activeOrder = data;
+                
+                // Si está pendiente y asignado a MI, mostrar la alerta de aceptación
+                if (data.estado === 'pendiente') {
+                    mostrarAlertaAsignacion(data);
+                    return; 
+                }
+
                 document.getElementById('active-order-section').classList.remove('hidden');
                 document.getElementById('pool-section').classList.add('hidden');
-                document.getElementById('active-order-card').innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div style="flex:1;">
-                            <p><strong>Ruta:</strong> ${data.descripcion}</p>
-                            <p style="font-size:0.8rem; color:var(--color-accent-primary); margin-top:5px;">
-                                📏 ${data.distancia_cuadras || '?'} cuadras | 💵 Precio: $${data.monto || 0}
-                            </p>
+                
+                let btnHtml = '';
+                if (data.estado === 'aceptado') {
+                    btnHtml = `<button onclick="updateStatus('en_origen')" style="background:var(--color-accent-primary); width:100%; padding:12px; border-radius:5px; color:white; font-weight:700;">📍 LLEGUÉ AL ORIGEN</button>`;
+                } else if (data.estado === 'en_origen') {
+                    btnHtml = `<button onclick="updateStatus('en_viaje')" style="background:var(--color-accent-warning); width:100%; padding:12px; border-radius:5px; color:white; font-weight:700;">🛵 INICIAR VIAJE</button>`;
+                } else {
+                    btnHtml = `
+                        <div style="display:flex; gap:10px;">
+                            <input type="number" id="order-monto" value="${data.monto || 0}" style="flex:1;">
+                            <button onclick="finalizeOrder('${data.id}')" style="background:var(--color-accent-success); padding:10px; border-radius:5px; color:white; font-weight:700;">✅ FINALIZAR</button>
                         </div>
+                    `;
+                }
+
+                document.getElementById('active-order-card').innerHTML = `
+                    <div style="margin-bottom:15px;">
+                        <p><strong>Ruta:</strong> ${data.descripcion}</p>
+                        <p style="font-size:0.8rem; color:var(--color-accent-primary); margin-top:5px;">
+                            📏 ${data.distancia_cuadras || '?'} cuadras | 💵 Precio sugerido: $${data.monto || 0}
+                        </p>
+                        <p style="font-size:0.7rem; color:var(--color-text-muted); margin-top:5px; text-transform:uppercase; font-weight:700;">
+                            Estado actual: <span style="color:white;">${data.estado.replace('_', ' ')}</span>
+                        </p>
                     </div>
-                    <div style="margin-top:15px; display:flex; gap:10px;">
-                        <input type="number" id="order-monto" value="${data.monto || 0}" style="flex:1;">
-                        <button onclick="finalizeOrder('${data.id}')" style="background:var(--color-accent-success); padding:10px; border-radius:5px; color:white; font-weight:700;">FINALIZAR</button>
-                    </div>
+                    ${btnHtml}
                 `;
                 loadMessages();
                 subscribeChat();
@@ -468,7 +501,14 @@
                 activeOrder = null;
                 document.getElementById('active-order-section').classList.add('hidden');
                 document.getElementById('pool-section').classList.remove('hidden');
+                document.getElementById('modal-asignacion').classList.add('hidden');
             }
+        }
+
+        async function updateStatus(nuevoEstado) {
+            const { error } = await sb.from('pedidos').update({ estado: nuevoEstado }).eq('id', activeOrder.id);
+            if (error) alert("Error: " + error.message);
+            else checkActiveOrder();
         }
 
         async function finalizeOrder(id) {
@@ -489,37 +529,67 @@
         }
 
         // REALTIME
+        // Sonido de alerta
+        const audioAlerta = new Audio('https://assets.mixkit.co/active_storage/sfx/941/941-preview.mp3');
+        audioAlerta.loop = true;
+
+        function startSafetyPolling() {
+            setInterval(() => {
+                const modalVisible = !document.getElementById('modal-asignacion').classList.contains('hidden');
+                // Si el modal está visible o ya tenemos un pedido aceptado, no buscar más
+                if (modalVisible || (activeOrder && activeOrder.estado !== 'pendiente')) return;
+                checkActiveOrder();
+            }, 5000);
+        }
+
         function subscribeRealtime() {
-            // Escuchar pedidos asignados a MI
-            sb.channel('public:pedidos_asig')
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos', filter: `asignado_a=eq.${currentUser.id}` }, payload => {
-                    if (payload.new.estado === 'pendiente') {
-                        mostrarAlertaAsignacion(payload.new);
-                    }
-                    // Si el pedido se cancela mientras estoy asignado o en viaje
-                    if (payload.new.estado === 'cancelado') {
-                        alert("⚠️ El pedido ha sido cancelado.");
-                        document.getElementById('modal-asignacion').classList.add('hidden');
-                        checkActiveOrder();
+            // Escuchar TODOS los cambios en pedidos y filtrar aquí para máxima fiabilidad
+            sb.channel('conductor-realtime')
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos', filter: `motomandado_id=eq.${currentUser.id}` }, (payload) => {
+                    const pedido = payload.new;
+                    console.log("Cambio en mi pedido:", pedido.estado);
+
+                    // ¿Es para MI?
+                    if (pedido.motomandado_id === currentUser.id) {
+                        
+                        // Si es un pedido PENDIENTE que me acaban de asignar
+                        if (pedido.estado === 'pendiente') {
+                            audioAlerta.play().catch(e => console.log("Esperando interacción para sonido"));
+                            if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+                            mostrarAlertaAsignacion(pedido);
+                        }
+
+                        // Si el pedido se cancela
+                        if (pedido.estado === 'cancelado') {
+                            document.getElementById('modal-asignacion').classList.add('hidden');
+                            checkActiveOrder();
+                            showBannerError("⚠️ EL PEDIDO ACTUAL HA SIDO CANCELADO");
+                        }
                     }
                 })
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pedidos', filter: `asignado_a=eq.${currentUser.id}` }, payload => {
-                    mostrarAlertaAsignacion(payload.new);
-                })
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes' }, loadMessages)
                 .subscribe();
+        }
+
+        function showBannerError(text) {
+            const banner = document.createElement('div');
+            banner.style = "position:fixed; top:0; left:0; width:100%; background:var(--color-accent-error); color:white; text-align:center; padding:10px; z-index:10000; font-weight:700;";
+            banner.innerText = text;
+            document.body.appendChild(banner);
+            setTimeout(() => banner.remove(), 5000);
         }
 
         let asigTimer;
         function mostrarAlertaAsignacion(pedido) {
+            // Si el modal ya está abierto con este mismo pedido, no hacer nada
+            if (!document.getElementById('modal-asignacion').classList.contains('hidden') && activeOrder && activeOrder.id === pedido.id) return;
+
             activeOrder = pedido;
             document.getElementById('asig-ruta').innerText = pedido.descripcion.split('|')[0];
             document.getElementById('modal-asignacion').classList.remove('hidden');
             
-            // Sonido de alerta (opcional, si el navegador lo permite)
-            try { new Audio('https://assets.mixkit.co/sfx/preview/mixkit-urgent-simple-beep-notification-1520.mp3').play(); } catch(e){}
+            audioAlerta.play().catch(e => console.log("Audio esperando interacción"));
 
-            let timeLeft = 60;
+            let timeLeft = 120;
             document.getElementById('asig-timer').innerText = timeLeft;
             
             if (asigTimer) clearInterval(asigTimer);
@@ -534,14 +604,20 @@
             }, 1000);
         }
 
-        async function aceptarAsignacion() {
+        async function aceptarPedido() {
+            if (!activeOrder) return;
             clearInterval(asigTimer);
-            const { error } = await sb.from('pedidos').update({
-                estado: 'en_viaje',
-                motomandado_id: currentUser.id
+            audioAlerta.pause();
+            audioAlerta.currentTime = 0;
+
+            const { error } = await sb.from('pedidos').update({ 
+                estado: 'aceptado',
+                motomandado_id: currentUser.id 
             }).eq('id', activeOrder.id);
             
-            if (!error) {
+            if (error) {
+                showBannerError("Error al aceptar: " + error.message);
+            } else {
                 document.getElementById('modal-asignacion').classList.add('hidden');
                 checkActiveOrder();
             }
@@ -549,37 +625,64 @@
 
         async function rechazarPorTiempo() {
             document.getElementById('modal-asignacion').classList.add('hidden');
+            audioAlerta.pause();
+            audioAlerta.currentTime = 0;
+
             // Ponerme fuera de servicio por no responder
             await sb.from('PERFILES').update({ esta_activo: false }).eq('id', currentUser.id);
             document.getElementById('toggle-active').checked = false;
             updateStatusUI(false);
             
             // Liberar el pedido para que el watchdog del cliente lo reasigne
-            await sb.from('pedidos').update({ asignado_a: null }).eq('id', activeOrder.id);
+            if (activeOrder) {
+                await sb.from('pedidos').update({ motomandado_id: null }).eq('id', activeOrder.id);
+            }
             activeOrder = null;
+            checkActiveOrder();
         }
 
         // CHAT
         async function loadMessages() {
             if(!activeOrder) return;
-            chatBox.scrollTop = chatBox.scrollHeight;
+            const { data } = await sb.from('mensajes').select('*').eq('pedido_id', activeOrder.id).order('created_at', { ascending: true });
+            const box = document.getElementById('chat-messages');
+            box.innerHTML = (data||[]).map(m => `<div class="message ${m.emisor_id === currentUser.id ? 'message--moto' : 'message--client'}">${m.texto}</div>`).join('');
+            box.scrollTop = box.scrollHeight;
         }
 
         document.getElementById('btn-send-msg').onclick = async () => {
             const input = document.getElementById('chat-input');
-            if(!input.value.trim() || !activeOrder) return;
-            await sb.from('mensajes_chat').insert({
-                id_pedido: activeOrder.id,
-                remitente_id: currentUser.id,
-                contenido: input.value
+            const txt = input.value.trim();
+            if(!txt || !activeOrder) return;
+            await sb.from('mensajes').insert({
+                pedido_id: activeOrder.id,
+                emisor_id: currentUser.id,
+                texto: txt
             });
             input.value = '';
         };
 
         function subscribeChat() {
-            sb.channel(`chat-${activeOrder.id}`)
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes_chat', filter: `id_pedido=eq.${activeOrder.id}` }, loadMessages)
-                .subscribe();
+            if (!activeOrder) return;
+            const channelName = `chat-${activeOrder.id}`;
+            
+            // Evitar duplicados
+            if (window.chatSub && window.chatSub.topic === `realtime:${channelName}`) return;
+
+            if (window.chatSub) sb.removeChannel(window.chatSub);
+            
+            window.chatSub = sb.channel(channelName)
+                .on('postgres_changes', { 
+                    event: 'INSERT', 
+                    schema: 'public', 
+                    table: 'mensajes', 
+                    filter: `pedido_id=eq.${activeOrder.id}` 
+                }, () => {
+                    loadMessages();
+                })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') console.log("Canal de Chat Activo:", channelName);
+                });
         }
 
         function showRegister() {

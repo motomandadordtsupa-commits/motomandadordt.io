@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MotomandadoRDT - Cliente (Modo MAPA)</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="variables.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -75,7 +76,7 @@
         <!-- Seccion Pedido Activo -->
         <div id="active-order-section" class="hidden">
             <div class="card" style="border: 1px solid var(--color-accent-success);">
-                <h3 style="color:var(--color-accent-success); margin-bottom:10px;">🚀 Pedido en Curso</h3>
+                <h3 style="color:var(--color-accent-success); margin-bottom:10px;" id="client-order-title">🚀 Pedido Activo</h3>
                 <div id="active-order-info" style="font-size:0.9rem; line-height:1.5;"></div>
                 
                 <div id="chat-section" style="margin-top:15px; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
@@ -86,16 +87,33 @@
                     </div>
                 </div>
 
-                <button onclick="cancelarPedidoActual()" style="width:100%; margin-top:15px; padding:10px; background:transparent; border:1px solid var(--color-accent-error); color:var(--color-accent-error); border-radius:5px; font-size:0.8rem; font-weight:700;">CANCELAR PEDIDO</button>
+                <button id="btn-cancel-order" onclick="cancelarPedidoActual()" style="width:100%; margin-top:15px; padding:10px; background:transparent; border:1px solid var(--color-accent-error); color:var(--color-accent-error); border-radius:5px; font-size:0.8rem; font-weight:700;">CANCELAR PEDIDO (SOLO PENDIENTES)</button>
+            </div>
+        </div>
+
+        <!-- Toast Notification Element -->
+        <div id="toast-notification" style="position:fixed; top:20px; right:20px; background:var(--color-accent-success); color:white; padding:15px 25px; border-radius:8px; font-weight:bold; transform:translateX(150%); transition:transform 0.3s ease; z-index:9999; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
+            Notificación
+        </div>
+
+        <!-- Modal de Estado/Alertas Premium -->
+        <div id="status-modal" class="modal hidden">
+            <div class="card" style="width: 100%; max-width: 400px; text-align: center; border: 1px solid var(--color-accent-primary);">
+                <div id="status-icon" style="font-size: 3rem; margin-bottom: 15px;">🚀</div>
+                <h2 id="status-title" style="margin-bottom: 10px; color: var(--color-accent-primary);">Estado del Pedido</h2>
+                <div id="status-body" style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 20px; color: var(--color-text-muted);">
+                    <!-- Info dinámica -->
+                </div>
+                <button onclick="closeStatusModal()" class="button button--primary" style="width: 100%;">ENTENDIDO</button>
             </div>
         </div>
 
         <!-- Formulario Nuevo Pedido CON MAPA -->
         <section class="card" id="new-order-section">
-            <h3 style="margin-bottom:5px;">Selecciona en el mapa</h3>
-            <p style="font-size:0.75rem; color:var(--color-text-muted); margin-bottom:15px;">Mueve el círculo 🟢 al Origen y el 🔴 al Destino.</p>
+            <h3 style="margin-bottom:5px;">Solicitar Mandado</h3>
+            <p style="font-size:0.75rem; color:var(--color-text-muted); margin-bottom:15px;">Confirma las ubicaciones en el mapa.</p>
             
-            <div id="map" style="height: 300px; width: 100%; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); z-index: 1;"></div>
+            <div id="map" style="height: 250px; width: 100%; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); z-index: 1;"></div>
 
             <div class="form">
                 <input type="text" id="order-origin-text" placeholder="Escribe tu origen o mueve el pin 🟢..." style="font-size:0.85rem; padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
@@ -145,6 +163,32 @@
             const { data: { session } } = await sb.auth.getSession();
             if (session) {
                 currentUser = session.user;
+
+                // Verificar si existe el perfil en la tabla PERFILES
+                let { data: profile } = await sb
+                    .from('PERFILES')
+                    .select('role')
+                    .eq('id', currentUser.id)
+                    .maybeSingle();
+
+                // Si no existe el perfil (por un Zeroize) lo recreamos
+                if (!profile && currentUser.user_metadata) {
+                    const meta = currentUser.user_metadata;
+                    const { error: errProf } = await sb.from('PERFILES').insert({
+                        id: currentUser.id,
+                        nombre_completo: meta.nombre_completo || 'Cliente Sin Nombre',
+                        telefono: meta.telefono || '',
+                        role: 'cliente'
+                    });
+                    if (errProf) console.error("Error crítico al recrear perfil:", errProf);
+                    else {
+                        console.log("Perfil restaurado con éxito.");
+                        window.profileReady = true;
+                    }
+                } else {
+                    window.profileReady = true;
+                }
+
                 document.getElementById('auth-modal').classList.add('hidden');
                 document.getElementById('client-register-modal').classList.add('hidden');
                 await checkActiveOrder();
@@ -273,41 +317,68 @@
 
         // ORDERS & TIMEOUT
         document.getElementById('btn-create-order').onclick = async () => {
+            if (!window.profileReady) {
+                return showStatusModal("⌛ Preparando Perfil", "Estamos configurando tu cuenta. Intenta de nuevo en un segundo.", "⚙️");
+            }
+
+            // --- REFUERZO DE SEGURIDAD: Asegurar perfil correcto ---
+            const { data: myProf } = await sb.from('PERFILES').select('role').eq('id', currentUser.id).maybeSingle();
+            if (!myProf || myProf.role !== 'cliente') {
+                await sb.from('PERFILES').upsert({
+                    id: currentUser.id,
+                    nombre_completo: currentUser.user_metadata?.full_name || 'Usuario',
+                    role: 'cliente'
+                });
+            }
+            // -------------------------------------------------------
+
             const originText = document.getElementById('order-origin-text').value.replace('🟢 ', '');
             const destText = document.getElementById('order-dest-text').value.replace('🔴 ', '');
             const desc = document.getElementById('order-desc').value;
             const compra = parseFloat(document.getElementById('order-compra').value) || 0;
 
-            if (currentCalculation.monto === 0) return alert("Espera a que termine de calcular la ruta.");
+            const { data: existing } = await sb.from('pedidos')
+                .select('id')
+                .eq('cliente_id', currentUser.id)
+                .in('estado', ['pendiente', 'aceptado', 'en_origen', 'en_viaje', 'en_destino'])
+                .limit(1);
 
-            // --- NUEVO: Control de Demanda ---
-            const { count: activosCount } = await sb.from('PERFILES').select('*', { count: 'exact', head: true }).eq('role', 'repartidor').eq('esta_activo', true);
-            const { count: pendientesCount } = await sb.from('pedidos').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente');
-            
-            if (pendientesCount >= (activosCount || 0) * 2) {
-                return alert("En este momento la demanda es alta. Aguarde y vuelva a intentar en un minuto.");
+            if (existing && existing.length > 0) {
+                showStatusModal("⚠️ Pedido en Curso", "Ya tienes un viaje activo. Por favor, finaliza el actual antes de pedir otro.", "🛵");
+                checkActiveOrder();
+                return;
             }
-            // ---------------------------------
 
-            const { data: nextD } = await sb.from('PERFILES').select('id').eq('role', 'repartidor').eq('esta_activo', true).order('ultima_vez_libre', { ascending: true }).limit(1);
-            const driverId = nextD && nextD.length > 0 ? nextD[0].id : null;
-
-            const { data: order, error } = await sb.from('pedidos').insert({
+            const pedidoData = {
                 cliente_id: currentUser.id,
                 descripcion: `${originText} -> ${destText} | Notas: ${desc}`,
                 estado: 'pendiente',
-                monto: currentCalculation.monto,
-                distancia_cuadras: currentCalculation.cuadras,
-                costo_compra: compra,
-                asignado_a: driverId,
-                asignado_en: driverId ? new Date().toISOString() : null
-            }).select().single();
+                monto: currentCalculation.monto || 0,
+                distancia_cuadras: currentCalculation.cuadras || 0
+            };
 
-            if (error) alert(error.message);
-            else {
-                alert("Pedido solicitado con éxito. El conductor recibirá las coordenadas GPS.");
+            if (compra > 0) pedidoData.costo_compra = compra;
+
+            // 2. Inserción directa
+            const { error } = await sb.from('pedidos').insert(pedidoData);
+
+            if (error) {
+                console.error("Error al crear pedido:", error);
+                // Si el error persiste, es probable que la política RLS sea aún más estricta
+                showStatusModal("❌ Error de Envío", "La base de datos rechazó el pedido. Detalles: " + error.message, "🚫");
+            } else {
+                showStatusModal("✅ Pedido Enviado", "Buscando al conductor más cercano...", "🛵");
+                
+                // Buscamos el ID asignado para iniciar el rastreo
+                const { data: lastOrder } = await sb.from('pedidos')
+                    .select('id')
+                    .eq('cliente_id', currentUser.id)
+                    .eq('estado', 'pendiente')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
                 checkActiveOrder();
-                if (order) startWatchdog(order.id);
+                if (lastOrder && lastOrder.length > 0) startWatchdog(lastOrder[0].id);
             }
         };
 
@@ -321,32 +392,123 @@
                 if (totalSecs > 300) { // 5 minutos total
                     clearInterval(interval);
                     await sb.from('pedidos').update({ estado: 'cancelado' }).eq('id', orderId);
-                    alert("⚠️ No se encontró conductor en 5 minutos. Pedido cancelado.");
+                    showStatusModal("⏰ Tiempo Expirado", "No encontramos conductores disponibles. El pedido se canceló.", "📭");
                     checkActiveOrder();
-                } else if (!o.asignado_a || (new Date() - new Date(o.asignado_en)) > 60000) {
-                    const { data: next } = await sb.from('PERFILES').select('id').eq('role', 'repartidor').eq('esta_activo', true).order('ultima_vez_libre', { ascending: true }).limit(1);
+                } else if (!o.motomandado_id || (new Date() - new Date(o.created_at)) > 120000) {
+                    // Buscar conductor con soporte para nulos (post-zeroize)
+                    const { data: next } = await sb.from('PERFILES')
+                        .select('id')
+                        .eq('role', 'repartidor')
+                        .eq('esta_activo', true)
+                        .order('ultima_vez_libre', { ascending: true, nullsFirst: true })
+                        .limit(1);
+                    
                     if (next && next.length > 0) {
-                        await sb.from('pedidos').update({ asignado_a: next[0].id, asignado_en: new Date().toISOString() }).eq('id', orderId);
+                        await sb.from('pedidos').update({ motomandado_id: next[0].id }).eq('id', orderId);
                     }
                 }
             }, 10000);
         }
 
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            toast.innerText = message;
+            toast.style.transform = 'translateX(0)';
+            try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch(e){}
+            setTimeout(() => { toast.style.transform = 'translateX(150%)'; }, 4000);
+        }
+
+        function showStatusModal(title, body, icon = "🚀") {
+            document.getElementById('status-title').innerText = title;
+            document.getElementById('status-body').innerHTML = body;
+            document.getElementById('status-icon').innerText = icon;
+            document.getElementById('status-modal').classList.remove('hidden');
+        }
+
+        function closeStatusModal() {
+            document.getElementById('status-modal').classList.add('hidden');
+        }
+
+        let lastOrderStatus = '';
+        const ACTIVE_STATES = ['pendiente', 'aceptado', 'en_origen', 'en_viaje', 'en_destino', 'entregado'];
+
         async function checkActiveOrder() {
-            const { data } = await sb.from('pedidos').select('*, motomandado:PERFILES!motomandado_id(nombre_completo)').eq('cliente_id', currentUser.id).in('estado', ['pendiente', 'en_viaje']).order('created_at', { ascending: false }).limit(1);
+            const { data } = await sb.from('pedidos').select('*').eq('cliente_id', currentUser.id).in('estado', ACTIVE_STATES).order('created_at', { ascending: false }).limit(1);
             if (data && data.length > 0) {
-                activeOrder = data[0];
+                const order = data[0];
+                
+                // Si el usuario ya cerró este pedido localmente, no lo mostramos como activo
+                if (localStorage.getItem('dismissed_' + order.id)) {
+                    activeOrder = null;
+                    document.getElementById('active-order-section').classList.add('hidden');
+                    document.getElementById('new-order-section').classList.remove('hidden');
+                    setTimeout(initMap, 500);
+                    return;
+                }
+
+                activeOrder = order;
+                
+                if (lastOrderStatus !== activeOrder.estado) {
+                    if (activeOrder.estado === 'aceptado') showStatusModal("✅ ¡Pedido Aceptado!", "Un conductor ha tomado tu pedido y va en camino al origen.", "🏍️");
+                    else if (activeOrder.estado === 'en_origen') showStatusModal("📍 Conductor en Origen", "El repartidor ya llegó al punto de retiro.", "📌");
+                    else if (activeOrder.estado === 'en_viaje') showStatusModal("🛵 Pedido en Viaje", "El conductor ya tiene tu pedido y va hacia el destino.", "🚀");
+                    else if (activeOrder.estado === 'en_destino') showStatusModal("🏁 Conductor en Destino", "El repartidor ha llegado al punto de entrega.", "✅");
+                }
+                lastOrderStatus = activeOrder.estado;
+                
+                subscribeChat(activeOrder.id);
+                
                 document.getElementById('active-order-section').classList.remove('hidden');
                 document.getElementById('new-order-section').classList.add('hidden');
-                const mName = activeOrder.motomandado ? activeOrder.motomandado.nombre_completo : "Buscando...";
+                
+                // Fetch driver profile without join
+                let mName = "Buscando...";
+                if (activeOrder.motomandado_id) {
+                    const { data: motoData } = await sb.from('PERFILES').select('nombre_completo').eq('id', activeOrder.motomandado_id).single();
+                    if (motoData) mName = motoData.nombre_completo;
+                }
+                
+                let estadoFormat = activeOrder.estado.toUpperCase().replace('_', ' ');
+                document.getElementById('client-order-title').innerText = `🚀 Pedido: ${estadoFormat}`;
+                
+                if (activeOrder.estado !== 'pendiente') {
+                    document.getElementById('btn-cancel-order').style.display = 'none';
+                } else {
+                    document.getElementById('btn-cancel-order').style.display = 'block';
+                }
+                
                 document.getElementById('active-order-info').innerHTML = `
-                    <p><strong>De:</strong> ${activeOrder.descripcion.split('->')[0]}</p>
-                    <p><strong>A:</strong> ${activeOrder.descripcion.split('->')[1].split('|')[0]}</p>
-                    <p><strong>Moto:</strong> <span style="color:var(--color-accent-primary);">${mName}</span></p>
-                    <p><strong>Precio:</strong> <span style="color:var(--color-accent-success);">$${activeOrder.monto + (activeOrder.costo_compra||0)}</span></p>
-                    <small>Estado: ${activeOrder.estado.toUpperCase()}</small>
+                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                            <div>
+                                <label style="font-size:0.6rem; color:var(--color-text-muted); text-transform:uppercase;">Distancia</label>
+                                <div style="font-weight:700; color:var(--color-accent-primary);">${activeOrder.distancia_cuadras || '?'} cuadras</div>
+                            </div>
+                            <div>
+                                <label style="font-size:0.6rem; color:var(--color-text-muted); text-transform:uppercase;">Costo Total</label>
+                                <div style="font-weight:700; color:var(--color-accent-success);">$${(activeOrder.monto || 0) + (activeOrder.costo_compra || 0)}</div>
+                            </div>
+                        </div>
+                        <p style="margin-bottom:5px;"><strong>Origen:</strong> ${activeOrder.descripcion.split('->')[0]}</p>
+                        <p style="margin-bottom:10px;"><strong>Destino:</strong> ${activeOrder.descripcion.split('->')[1] ? activeOrder.descripcion.split('->')[1].split('|')[0] : ''}</p>
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-top: 1px solid rgba(255,255,255,0.05); pt:10px; margin-top:10px;">
+                           <span style="font-size:0.8rem; color:var(--color-text-muted);">Conductor: <strong>${mName}</strong></span>
+                           <span style="font-size:0.65rem; padding:3px 10px; background:var(--color-accent-primary); color:white; border-radius:12px; font-weight:700;">${estadoFormat}</span>
+                        </div>
+                    </div>
+                    ${activeOrder.estado === 'entregado' ? 
+                        `<button id="btn-close-final" onclick="finalizarLocalmente('${activeOrder.id}')" class="button button--primary" style="width:100%; background:var(--color-accent-success); margin-top:10px;">✅ ENTENDIDO, CERRAR (60s)</button>` : 
+                        (activeOrder.estado === 'en_viaje' || activeOrder.estado === 'en_destino' ? 
+                        `<button onclick="confirmarEntrega('${activeOrder.id}')" class="button button--primary" style="width:100%; background:var(--color-accent-success); margin-top:10px;">✅ ¡YA RECIBÍ MI PEDIDO!</button>` : '')
+                    }
                 `;
                 loadMessages();
+                subscribeChat(activeOrder.id);
+
+                // Si está entregado, iniciar timer de auto-cierre
+                if (activeOrder.estado === 'entregado') {
+                    startCloseTimer(activeOrder.id);
+                }
             } else {
                 activeOrder = null;
                 document.getElementById('active-order-section').classList.add('hidden');
@@ -354,6 +516,18 @@
                 setTimeout(initMap, 500); // Iniciar mapa si no hay pedido activo
             }
             loadHistory();
+        }
+
+        async function confirmarEntrega(orderId) {
+            if (!confirm("¿Confirmas que ya recibiste tu pedido y todo está en orden?")) return;
+            
+            const { error } = await sb.from('pedidos').update({ estado: 'entregado' }).eq('id', orderId);
+            if (error) showStatusModal("❌ Error", "No se pudo finalizar: " + error.message, "🚫");
+            else {
+                showStatusModal("🏁 ¡Viaje Completado!", "Gracias por confiar en Motomandado. El pedido se ha guardado en tu historial.", "🎉");
+                lastOrderStatus = '';
+                checkActiveOrder();
+            }
         }
 
         async function cancelarPedidoActual() {
@@ -379,6 +553,27 @@
             document.getElementById('btn-toggle-history').innerText = hist.classList.contains('hidden') ? "📦 VER HISTORIAL DE VIAJES" : "🔼 OCULTAR HISTORIAL";
         }
 
+        let closeTimer;
+        function startCloseTimer(orderId) {
+            let timeLeft = 60;
+            if (closeTimer) clearInterval(closeTimer);
+            closeTimer = setInterval(() => {
+                timeLeft--;
+                const btn = document.getElementById('btn-close-final');
+                if (btn) btn.innerText = `✅ ENTENDIDO, CERRAR (${timeLeft}s)`;
+                if (timeLeft <= 0) {
+                    clearInterval(closeTimer);
+                    finalizarLocalmente(orderId);
+                }
+            }, 1000);
+        }
+
+        function finalizarLocalmente(orderId) {
+            if (closeTimer) clearInterval(closeTimer);
+            localStorage.setItem('dismissed_' + orderId, 'true');
+            checkActiveOrder();
+        }
+
         // CHAT
         async function loadMessages() {
             if(!activeOrder) return;
@@ -396,9 +591,36 @@
             if(!error) { input.value = ''; loadMessages(); }
         }
 
+        let chatChannel = null;
+        function subscribeChat(pedidoId) {
+            if (!pedidoId) return;
+            const channelName = `chat-${pedidoId}`;
+            
+            // Evitar duplicados
+            if (window.chatSub && window.chatSub.topic === `realtime:${channelName}`) return;
+
+            if (window.chatSub) sb.removeChannel(window.chatSub);
+            
+            window.chatSub = sb.channel(channelName)
+                .on('postgres_changes', { 
+                    event: 'INSERT', 
+                    schema: 'public', 
+                    table: 'mensajes', 
+                    filter: `pedido_id=eq.${pedidoId}` 
+                }, () => {
+                    loadMessages();
+                })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') console.log("Canal de Chat Activo:", channelName);
+                });
+        }
+
         function subscribeRealtime() {
-            sb.channel('db-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, checkActiveOrder)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes' }, loadMessages).subscribe();
+            sb.channel('public:pedidos_cliente')
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos', filter: `cliente_id=eq.${currentUser.id}` }, () => {
+                    checkActiveOrder();
+                })
+                .subscribe();
         }
 
         // AUTH CLICKS

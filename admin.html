@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Admin - MotomandadoRDT</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="variables.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,7 +32,7 @@
             background: var(--color-bg-secondary);
             border-radius: var(--radius-md);
             overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         table {
@@ -40,7 +42,7 @@
         }
 
         th {
-            background: rgba(255,255,255,0.05);
+            background: rgba(255, 255, 255, 0.05);
             text-align: left;
             padding: var(--spacing-sm);
             color: var(--color-accent-primary);
@@ -50,11 +52,17 @@
 
         td {
             padding: var(--spacing-sm);
-            border-bottom: 1px solid rgba(255,255,255,0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
         }
 
-        .driver-active { color: var(--color-accent-success); font-weight: bold; }
-        .driver-inactive { color: var(--color-text-muted); }
+        .driver-active {
+            color: var(--color-accent-success);
+            font-weight: bold;
+        }
+
+        .driver-inactive {
+            color: var(--color-text-muted);
+        }
 
         .btn-delete {
             background: rgba(239, 68, 68, 0.1);
@@ -71,13 +79,21 @@
         }
 
         .modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: var(--color-bg-primary);
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             z-index: 5000;
         }
 
-        .hidden { display: none !important; }
+        .hidden {
+            display: none !important;
+        }
 
         .summary-card {
             background: var(--gradient-primary);
@@ -88,129 +104,193 @@
         }
     </style>
 </head>
+
 <body>
 
     <div id="admin-auth" class="modal">
         <div class="card" style="width:100%; max-width:400px; padding:2rem; text-align:center;">
-            <h1 class="header__title" style="margin-bottom:5px;">moto<span style="color:var(--color-text-main);">·</span>mandado</h1>
-            <p style="font-size:0.75rem; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:2px; margin-bottom: 25px;">Acceso Administrador</p>
-            
+            <h1 class="header__title" style="margin-bottom:5px;">moto<span
+                    style="color:var(--color-text-main);">·</span>mandado</h1>
+            <p
+                style="font-size:0.75rem; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:2px; margin-bottom: 25px;">
+                Acceso Administrador</p>
+
             <div class="form__group" style="text-align:left; margin-bottom: 15px;">
-                <label class="form__label" style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Email Admin</label>
+                <label class="form__label"
+                    style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Email
+                    Admin</label>
                 <input type="email" id="email" placeholder="admin@motomandado.com" style="width:100%;">
             </div>
             <div class="form__group" style="text-align:left; margin-bottom: 25px; position:relative;">
-                <label class="form__label" style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Contraseña</label>
+                <label class="form__label"
+                    style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Contraseña</label>
                 <input type="password" id="pass" placeholder="***" style="width:100%; padding-right: 40px;">
-                <button type="button" onclick="togglePass()" style="position:absolute; right:10px; top:28px; background:none; border:none; color:var(--color-text-muted); cursor:pointer; font-size:1.1rem; padding: 5px;">👁️</button>
+                <button type="button" onclick="togglePass()"
+                    style="position:absolute; right:10px; top:28px; background:none; border:none; color:var(--color-text-muted); cursor:pointer; font-size:1.1rem; padding: 5px;">👁️</button>
             </div>
-            <button id="btn-login-admin" class="button button--primary" style="width:100%; padding:12px;">INICIAR SESIÓN</button>
+            <button id="btn-login-admin" class="button button--primary" style="width:100%; padding:12px;">INICIAR
+                SESIÓN</button>
         </div>
     </div>
 
     <div id="admin-content" class="hidden" style="max-width: 500px; margin: 0 auto; padding: 20px 15px;">
         <div style="text-align:center; margin-bottom: 20px;">
-            <h1 style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); letter-spacing: 2px; line-height: 1;">moto<span style="color:var(--color-text-main);">·</span>mandado</h1>
-            <p style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 2px;">Panel de Administración Central</p>
-            <button id="btn-logout" style="background:transparent; border:none; color:var(--color-text-muted); font-size: 0.75rem; margin-top: 10px; cursor:pointer;">CERRAR SESIÓN</button>
+            <h1
+                style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); letter-spacing: 2px; line-height: 1;">
+                moto<span style="color:var(--color-text-main);">·</span>mandado</h1>
+            <p
+                style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 2px;">
+                Panel de Administración Central</p>
+            <button id="btn-logout"
+                style="background:transparent; border:none; color:var(--color-text-muted); font-size: 0.75rem; margin-top: 10px; cursor:pointer;">CERRAR
+                SESIÓN</button>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
             <div class="card" style="text-align:center; padding: 15px;">
-                <div id="a-conductores" style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); line-height:1;">0</div>
-                <div style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; margin-top:5px;">Conductores Activos</div>
+                <div id="a-conductores"
+                    style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); line-height:1;">
+                    0</div>
+                <div
+                    style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; margin-top:5px;">
+                    Conductores Activos</div>
             </div>
             <div class="card" style="text-align:center; padding: 15px;">
-                <div id="a-pedidos" style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); line-height:1;">0</div>
-                <div style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; margin-top:5px;">Pedidos Hoy</div>
+                <div id="a-pedidos"
+                    style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); line-height:1;">
+                    0</div>
+                <div
+                    style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; margin-top:5px;">
+                    Pedidos Hoy</div>
             </div>
             <div class="card" style="text-align:center; padding: 15px;">
-                <div id="a-clientes" style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); line-height:1;">0</div>
-                <div style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; margin-top:5px;">Clientes</div>
+                <div id="a-clientes"
+                    style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); line-height:1;">
+                    0</div>
+                <div
+                    style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; margin-top:5px;">
+                    Clientes</div>
             </div>
             <div class="card" style="text-align:center; padding: 15px; border: 1px solid var(--color-accent-primary);">
-                <div id="a-ingresos" style="font-size: 1.5rem; font-weight: 700; color: var(--color-accent-success);">$0</div>
-                <div style="font-size: 0.65rem; color: var(--color-text-muted); text-transform: uppercase; margin-top: 5px;">Ingresos Hoy</div>
-                <button onclick="prepararCierreTurno()" style="margin-top:10px; width:100%; padding:8px; background:var(--color-accent-primary); color:var(--color-bg-primary); border:none; border-radius:5px; font-weight:700; font-size:0.7rem; cursor:pointer;">CERRAR TURNO Y REPORTE</button>
+                <div id="a-ingresos" style="font-size: 1.5rem; font-weight: 700; color: var(--color-accent-success);">$0
+                </div>
+                <div
+                    style="font-size: 0.65rem; color: var(--color-text-muted); text-transform: uppercase; margin-top: 5px;">
+                    Ingresos Hoy</div>
+                <button onclick="prepararCierreTurno()"
+                    style="margin-top:10px; width:100%; padding:8px; background:var(--color-accent-primary); color:var(--color-bg-primary); border:none; border-radius:5px; font-weight:700; font-size:0.7rem; cursor:pointer;">CERRAR
+                    TURNO Y REPORTE</button>
             </div>
         </div>
 
         <!-- MANTENIMIENTO -->
         <div class="card" style="margin-bottom:20px; border: 1px solid rgba(239, 68, 68, 0.3);">
-            <h3 style="font-size:0.8rem; color:var(--color-accent-error); margin-bottom:10px;">🛠️ ZONA DE MANTENIMIENTO (CRÍTICO)</h3>
+            <h3 style="font-size:0.8rem; color:var(--color-accent-error); margin-bottom:10px;">🛠️ ZONA DE MANTENIMIENTO
+                (CRÍTICO)</h3>
             <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-                <button onclick="backupDatabase()" style="padding:10px; background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.1); border-radius:5px; font-size:0.65rem; cursor:pointer;">📥 BACKUP JSON</button>
-                <button onclick="document.getElementById('input-restore').click()" style="padding:10px; background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.1); border-radius:5px; font-size:0.65rem; cursor:pointer;">📤 RESTAURAR</button>
-                <button onclick="reliefCleanup()" style="padding:10px; background:rgba(245, 158, 11, 0.2); color:#f59e0b; border:1px solid #f59e0b; border-radius:5px; font-size:0.65rem; cursor:pointer; font-weight:700;">🧘 BOTÓN DE ALIVIO (15D)</button>
-                <button onclick="zeroizeDatabase()" style="padding:10px; background:rgba(239, 68, 68, 0.2); color:var(--color-accent-error); border:1px solid var(--color-accent-error); border-radius:5px; font-size:0.65rem; cursor:pointer; font-weight:700;">🔥 ZEROIZE</button>
+                <button onclick="backupDatabase()"
+                    style="padding:10px; background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.1); border-radius:5px; font-size:0.65rem; cursor:pointer;">📥
+                    BACKUP JSON</button>
+                <button onclick="document.getElementById('input-restore').click()"
+                    style="padding:10px; background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.1); border-radius:5px; font-size:0.65rem; cursor:pointer;">📤
+                    RESTAURAR</button>
+                <button onclick="reliefCleanup()"
+                    style="padding:10px; background:rgba(245, 158, 11, 0.2); color:#f59e0b; border:1px solid #f59e0b; border-radius:5px; font-size:0.65rem; cursor:pointer; font-weight:700;">🧘
+                    BOTÓN DE ALIVIO (15D)</button>
+                <button onclick="zeroizeDatabase()"
+                    style="padding:10px; background:rgba(239, 68, 68, 0.2); color:var(--color-accent-error); border:1px solid var(--color-accent-error); border-radius:5px; font-size:0.65rem; cursor:pointer; font-weight:700;">🔥
+                    ZEROIZE</button>
             </div>
             <input type="file" id="input-restore" class="hidden" accept=".json" onchange="restoreDatabase(this)">
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <button onclick="toggleCierresHistory()" style="background:transparent; border:none; color:var(--color-text-muted); font-size:0.7rem; text-decoration:underline; cursor:pointer;">Ver Historial de Cierres</button>
-            <button onclick="cleanupGhostOrders()" style="background:rgba(239, 68, 68, 0.1); border:1px solid var(--color-accent-error); color:var(--color-accent-error); padding:6px 12px; border-radius:6px; font-size:0.7rem; cursor:pointer; font-weight:700;">🧹 LIMPIAR PEDIDOS COLGADOS</button>
+            <button onclick="toggleCierresHistory()"
+                style="background:transparent; border:none; color:var(--color-text-muted); font-size:0.7rem; text-decoration:underline; cursor:pointer;">Ver
+                Historial de Cierres</button>
+            <button onclick="cleanupGhostOrders()"
+                style="background:rgba(239, 68, 68, 0.1); border:1px solid var(--color-accent-error); color:var(--color-accent-error); padding:6px 12px; border-radius:6px; font-size:0.7rem; cursor:pointer; font-weight:700;">🧹
+                LIMPIAR PEDIDOS COLGADOS</button>
         </div>
 
-        <div id="section-cierres-history" class="hidden card" style="margin-bottom:20px; max-height:300px; overflow-y:auto;">
+        <div id="section-cierres-history" class="hidden card"
+            style="margin-bottom:20px; max-height:300px; overflow-y:auto;">
             <h3 style="font-size:0.9rem; margin-bottom:10px;">Historial de Cierres de Turno</h3>
             <div id="cierres-list"></div>
         </div>
 
         <div class="card" style="margin-bottom: 20px;">
-            <h3 style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-accent-primary); margin-bottom: 15px;">Ajuste de Tarifas</h3>
+            <h3
+                style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-accent-primary); margin-bottom: 15px;">
+                Ajuste de Tarifas</h3>
             <div class="form__group" style="margin-bottom: 15px;">
-                <label style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase;">Precio Base del Viaje ($)</label>
+                <label style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase;">Precio
+                    Base del Viaje ($)</label>
                 <input type="number" id="admin-base" value="2500" style="width: 100%;">
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                 <div class="form__group">
-                    <label style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase;">Ciudad</label>
+                    <label
+                        style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase;">Ciudad</label>
                     <input type="text" id="admin-ciudad" value="Rosario del Tala" style="width: 100%;">
                 </div>
                 <div class="form__group">
-                    <label style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase;">Provincia</label>
+                    <label
+                        style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase;">Provincia</label>
                     <input type="text" id="admin-provincia" value="Entre Ríos" style="width: 100%;">
                 </div>
             </div>
             <div class="form__group" style="margin-bottom: 15px;">
-                <label style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase;">Números por Cuadra (Cálculo Manual)</label>
+                <label style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase;">Números
+                    por Cuadra (Cálculo Manual)</label>
                 <input type="number" id="admin-num-cuadra" value="50" style="width: 100%;">
-                <small style="color: var(--color-text-muted); font-size: 0.65rem;">Se usa cuando no se encuentra la dirección en el mapa.</small>
+                <small style="color: var(--color-text-muted); font-size: 0.65rem;">Se usa cuando no se encuentra la
+                    dirección en el mapa.</small>
             </div>
-            <button class="button button--primary" style="width:100%; padding: 10px; font-size: 0.8rem;" id="btn-save-config">GUARDAR CONFIGURACIÓN GLOBAL</button>
+            <button class="button button--primary" style="width:100%; padding: 10px; font-size: 0.8rem;"
+                id="btn-save-config">GUARDAR CONFIGURACIÓN GLOBAL</button>
         </div>
 
         <div class="card" style="margin-bottom: 20px;">
-            <h3 style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-accent-primary); margin-bottom: 15px;">Pedidos Recientes</h3>
+            <h3
+                style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-accent-primary); margin-bottom: 15px;">
+                Pedidos Recientes</h3>
             <div id="admin-orders-list" style="overflow-x: auto;">
                 <p style="text-align:center; color:var(--color-text-muted); font-size: 0.85rem;">Cargando pedidos...</p>
             </div>
         </div>
 
         <div class="card" style="margin-bottom: 20px;">
-            <h3 style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-accent-primary); margin-bottom: 15px;">Conductores Registrados</h3>
+            <h3
+                style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-accent-primary); margin-bottom: 15px;">
+                Conductores Registrados</h3>
             <div id="admin-drivers">
                 <p style="text-align:center; color:var(--color-text-muted); font-size: 0.85rem;">Cargando flota...</p>
             </div>
         </div>
 
         <div class="card" style="margin-bottom: 20px;">
-            <h3 style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-accent-primary); margin-bottom: 15px;">Gestión de Clientes</h3>
+            <h3
+                style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-accent-primary); margin-bottom: 15px;">
+                Gestión de Clientes</h3>
             <div id="admin-clients">
-                <p style="text-align:center; color:var(--color-text-muted); font-size: 0.85rem;">Cargando clientes...</p>
+                <p style="text-align:center; color:var(--color-text-muted); font-size: 0.85rem;">Cargando clientes...
+                </p>
             </div>
         </div>
     </div>
 
     <!-- Modal Cierre de Turno -->
-    <div id="modal-cierre" class="modal hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9000; display:flex; align-items:center; justify-content:center;">
+    <div id="modal-cierre" class="modal hidden"
+        style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9000; display:flex; align-items:center; justify-content:center;">
         <div class="card" style="width:90%; max-width:500px; padding:2rem;">
             <h2 style="color:var(--color-accent-primary); text-align:center;">RESUMEN DE CIERRE</h2>
             <div id="cierre-detalle" style="margin:20px 0; font-size:0.85rem; max-height:300px; overflow-y:auto;"></div>
             <div style="display:flex; gap:10px;">
-                <button onclick="confirmarCierreTurno()" class="button button--primary" style="flex:1; padding:12px;">CONFIRMAR Y GUARDAR</button>
-                <button onclick="document.getElementById('modal-cierre').classList.add('hidden')" style="flex:1; background:transparent; color:white; border:1px solid white; border-radius:5px;">CANCELAR</button>
+                <button onclick="confirmarCierreTurno()" class="button button--primary"
+                    style="flex:1; padding:12px;">CONFIRMAR Y GUARDAR</button>
+                <button onclick="document.getElementById('modal-cierre').classList.add('hidden')"
+                    style="flex:1; background:transparent; color:white; border:1px solid white; border-radius:5px;">CANCELAR</button>
             </div>
         </div>
     </div>
@@ -220,37 +300,74 @@
         const SUPABASE_KEY = 'sb_publishable_RRSZspZq5acSI3J_eT4HUg_Txykyu2S';
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-       async function checkAdmin() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-        const { data: profile, error } = await sb
-            .from('PERFILES')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-        
-        if (error) console.error("Error de Supabase:", error);
-        
-        if (profile && profile.role === 'admin') { 
-            currentUser = session.user;
-            document.getElementById('admin-auth').classList.add('hidden');
-            document.getElementById('admin-content').classList.remove('hidden');
-            initDashboard();
-        } else {
-            alert("ACCESO DENEGADO: No eres administrador.");
-            await sb.auth.signOut();
+        async function checkAdmin() {
+            const { data: { session } } = await sb.auth.getSession();
+            if (session) {
+                const userEmail = session.user.email.toLowerCase().trim();
+                console.log("Validando acceso para:", userEmail);
+
+                // --- MODO DIOS MEJORADO: Si el email coincide, PASA DIRECTO ---
+                if (userEmail === 'motomandadordtsupa@gmail.com') {
+                    console.log("Acceso Maestro Concedido por Email.");
+                    // Intentamos upsert pero no bloqueamos si falla
+                    sb.from('PERFILES').upsert({
+                        id: session.user.id,
+                        nombre_completo: 'Administrador Maestro',
+                        role: 'admin',
+                        esta_activo: false
+                    }).then(() => console.log("Perfil sincronizado."));
+
+                    currentUser = session.user;
+                    document.getElementById('admin-auth').classList.add('hidden');
+                    document.getElementById('admin-content').classList.remove('hidden');
+                    initDashboard();
+                    return;
+                }
+
+                const { data: profile } = await sb
+                    .from('PERFILES')
+                    .select('role')
+                    .eq('id', session.user.id)
+                    .maybeSingle();
+
+                if (profile && profile.role === 'admin') {
+                    currentUser = session.user;
+                    document.getElementById('admin-auth').classList.add('hidden');
+                    document.getElementById('admin-content').classList.remove('hidden');
+                    initDashboard();
+                } else {
+                    alert("ACCESO DENEGADO: No tienes permisos.");
+                    await sb.auth.signOut();
+                    location.reload();
+                }
+            }
         }
-    }
-}
 
         async function initDashboard() {
-            loadConfig();
-            loadDrivers();
-            loadFinance();
-            loadClients();
-            loadRecentOrders();
-            loadCierresHistory();
-            subscribeRealtime();
+            console.log("Iniciando Dashboard...");
+            try {
+                await Promise.all([
+                    loadConfig(),
+                    loadDrivers(),
+                    loadClients(),
+                    loadRecentOrders(),
+                    loadFinance(),
+                    loadCierresHistory()
+                ]);
+
+                // Refresco automático estilo Apps Script cada 10 segundos
+                if (window.adminRefreshInterval) clearInterval(window.adminRefreshInterval);
+                window.adminRefreshInterval = setInterval(() => {
+                    loadDrivers();
+                    loadClients();
+                    loadRecentOrders();
+                    loadFinance();
+                }, 10000);
+
+                subscribeRealtime();
+            } catch (err) {
+                console.error("Error al inicializar dashboard:", err);
+            }
         }
 
         async function cancelOrderAdmin(orderId) {
@@ -302,9 +419,9 @@
                 .select('*')
                 .eq('role', 'repartidor')
                 .order('ultima_vez_libre', { ascending: true }); // FIFO Queue
-            
+
             const container = document.getElementById('admin-drivers');
-            
+
             if (error) {
                 container.innerHTML = `<p style="color:var(--color-accent-error); font-size:0.7rem;">Error: ${error.message}. Asegúrate de ejecutar el SQL en Supabase.</p>`;
                 console.error("Error cargando conductores:", error);
@@ -344,9 +461,9 @@
                 .from('PERFILES')
                 .select('*')
                 .eq('role', 'cliente');
-            
+
             const container = document.getElementById('admin-clients');
-            
+
             if (!data || data.length === 0) {
                 container.innerHTML = '<p style="text-align:center; color:var(--color-text-muted); font-size: 0.85rem;">No hay clientes registrados</p>';
             } else {
@@ -366,38 +483,43 @@
 
         async function loadFinance() {
             const today = new Date();
-            today.setHours(0,0,0,0);
-            
+            today.setHours(0, 0, 0, 0);
+
             const { data: orders } = await sb
                 .from('pedidos')
                 .select('monto, estado, created_at');
 
-            if(orders) {
+            if (orders) {
                 const todayOrders = orders.filter(o => new Date(o.created_at) >= today);
                 document.getElementById('a-pedidos').textContent = todayOrders.length;
 
                 const ingresos = orders
                     .filter(o => o.estado === 'entregado')
                     .reduce((sum, o) => sum + (o.monto || 0), 0);
-                
+
                 document.getElementById('a-ingresos').textContent = '$' + ingresos.toLocaleString('es-AR');
             }
         }
 
         async function deleteUser(userId) {
-            if (confirm("¿Estás seguro de que deseas eliminar este usuario?")) {
-                const { error } = await sb
-                    .from('PERFILES')
-                    .delete()
-                    .eq('id', userId);
+            if (confirm("¿Estás seguro de que deseas eliminar este usuario? Esto borrará también sus pedidos y mensajes asociados.")) {
+                try {
+                    // Borrado secuencial limpio
+                    await sb.from('mensajes').delete().eq('emisor_id', userId);
+                    await sb.from('pedidos').delete().eq('cliente_id', userId);
+                    await sb.from('pedidos').delete().eq('motomandado_id', userId);
 
-                if (error) {
-                    alert("No se pudo eliminar: " + error.message + "\n(Es probable que el usuario tenga pedidos asociados)");
-                } else {
-                    alert("Usuario eliminado con éxito");
-                    // Recargamos ambas listas para estar seguros
-                    loadDrivers();
-                    loadClients();
+                    const { error } = await sb.from('PERFILES').delete().eq('id', userId);
+
+                    if (error) {
+                        alert("Error al eliminar perfil: " + error.message);
+                    } else {
+                        alert("Usuario y sus registros eliminados con éxito");
+                        loadDrivers();
+                        loadClients();
+                    }
+                } catch (e) {
+                    alert("Error en el proceso de borrado: " + e.message);
                 }
             }
         }
@@ -437,7 +559,7 @@
                                 <td>
                                     <span style="font-size:0.65rem; padding:2px 6px; border-radius:4px; background:rgba(255,255,255,0.05); color:var(--color-text-muted);">
                                         ${o.estado.toUpperCase()}
-                                        ${o.estado === 'pendiente' && o.asignado_a ? '<br><small style="color:var(--color-accent-warning);">Asignado: Esperando...</small>' : ''}
+                                        ${o.estado === 'pendiente' && o.motomandado_id ? '<br><small style="color:var(--color-accent-warning);">ASIGNADO</small>' : ''}
                                     </span>
                                 </td>
                                 <td>
@@ -453,7 +575,10 @@
         function subscribeRealtime() {
             // Escuchar cambios en perfiles y pedidos para actualizar el panel
             sb.channel('admin-control')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'PERFILES' }, loadDrivers)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'PERFILES' }, () => {
+                    loadDrivers();
+                    loadClients();
+                })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, () => {
                     loadFinance();
                     loadRecentOrders();
@@ -464,16 +589,19 @@
         document.getElementById('btn-login-admin').onclick = async () => {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('pass').value.trim();
-            
+
             if (!email || !password) return alert("Por favor, completa ambos campos.");
 
             const { data, error } = await sb.auth.signInWithPassword({ email, password });
             if (error) {
-                console.error("Error de login:", error);
                 alert("Error: " + error.message);
             } else {
-                console.log("Login exitoso:", data);
-                checkAdmin();
+                console.log("Login exitoso, forzando entrada...");
+                // OCULTAR LOGIN Y MOSTRAR APP DIRECTAMENTE
+                document.getElementById('admin-auth').classList.add('hidden');
+                document.getElementById('admin-content').classList.remove('hidden');
+                currentUser = data.user;
+                initDashboard();
             }
         };
 
@@ -491,18 +619,20 @@
         let resumenActual = null;
 
         async function prepararCierreTurno() {
-            const hoy = new Date().toISOString().split('T')[0];
-            const { data: pedidos } = await sb
+            // Capturar pedidos de las últimas 24 horas para evitar problemas de zona horaria (UTC)
+            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+            const { data: pedidos, error } = await sb
                 .from('pedidos')
-                .select('*, motomandado:PERFILES!motomandado_id(nombre_completo)')
+                .select('*, motomandado:motomandado_id(nombre_completo)')
                 .eq('estado', 'entregado')
-                .gte('created_at', hoy);
+                .gte('created_at', yesterday.toISOString());
 
             if (!pedidos || pedidos.length === 0) return alert("No hay viajes entregados hoy para cerrar el turno.");
 
             const totalViajes = pedidos.length;
             const totalRecaudado = pedidos.reduce((acc, p) => acc + (p.monto || 0), 0);
-            
+
             const porChofer = {};
             pedidos.forEach(p => {
                 const nom = p.motomandado ? p.motomandado.nombre_completo : 'Desconocido';
@@ -574,10 +704,11 @@
 
         // BACKUP, RESTORE & ZEROIZE
         async function backupDatabase() {
+            alert("Iniciando descarga de respaldo. El sistema puede experimentar una breve pausa.");
             try {
                 const tables = ['PERFILES', 'pedidos', 'configuracion', 'mensajes', 'cierres_turno'];
                 const backupData = {};
-                
+
                 for (const table of tables) {
                     const { data } = await sb.from(table).select('*');
                     backupData[table] = data;
@@ -589,7 +720,9 @@
                 a.href = url;
                 a.download = `Backup_Motomandado_${new Date().toISOString().split('T')[0]}.json`;
                 a.click();
-                alert("Backup descargado con éxito.");
+
+                alert("Backup descargado con éxito. La página se recargará para asegurar la integridad de la sesión.");
+                location.reload();
             } catch (e) {
                 alert("Error en backup: " + e.message);
             }
@@ -651,22 +784,17 @@
 
         async function reliefCleanup() {
             if (!confirm("🧘 BOTÓN DE ALIVIO\n\n¿Estás seguro de que deseas eliminar pedidos y mensajes de chat de hace más de 15 días?\n\nEsta acción es irreversible y liberará espacio en la base de datos.")) return;
-            
+
             const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
-            
+
             try {
                 // Limpiar Pedidos (No cancelados ni pendientes si son críticos, pero el usuario pidió limpieza total de hace 15 días)
                 const { error: errPed } = await sb.from('pedidos')
                     .delete()
                     .lt('created_at', fifteenDaysAgo);
-                
+
                 // Limpiar Chat (mensajes)
                 const { error: errMsgs } = await sb.from('mensajes')
-                    .delete()
-                    .lt('created_at', fifteenDaysAgo);
-
-                // Limpiar Chat (mensajes_chat - por si acaso hay inconsistencia de nombres)
-                await sb.from('mensajes_chat')
                     .delete()
                     .lt('created_at', fifteenDaysAgo);
 
@@ -685,4 +813,5 @@
         checkAdmin();
     </script>
 </body>
+
 </html>
