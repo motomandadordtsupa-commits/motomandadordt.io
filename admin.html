@@ -504,11 +504,24 @@
         async function deleteUser(userId) {
             if (confirm("¿Estás seguro de que deseas eliminar este usuario? Esto borrará también sus pedidos y mensajes asociados.")) {
                 try {
-                    // Borrado secuencial limpio
+                    // 1. Obtener IDs de todos los pedidos asociados (como cliente o como moto)
+                    const { data: p1 } = await sb.from('pedidos').select('id').eq('cliente_id', userId);
+                    const { data: p2 } = await sb.from('pedidos').select('id').eq('motomandado_id', userId);
+                    const allOrderIds = [...(p1 || []), ...(p2 || [])].map(p => p.id);
+
+                    // 2. Borrar TODOS los mensajes de esos pedidos (limpieza de integridad)
+                    if (allOrderIds.length > 0) {
+                        await sb.from('mensajes').delete().in('pedido_id', allOrderIds);
+                    }
+
+                    // 3. Borrar mensajes donde el usuario fue emisor (por si acaso)
                     await sb.from('mensajes').delete().eq('emisor_id', userId);
+
+                    // 4. Borrar los pedidos
                     await sb.from('pedidos').delete().eq('cliente_id', userId);
                     await sb.from('pedidos').delete().eq('motomandado_id', userId);
 
+                    // 5. Finalmente borrar el perfil
                     const { error } = await sb.from('PERFILES').delete().eq('id', userId);
 
                     if (error) {
@@ -528,6 +541,8 @@
             const { data, error } = await sb
                 .from('pedidos')
                 .select('*')
+                .neq('estado', 'finalizado')
+                .neq('estado', 'cancelado')
                 .order('created_at', { ascending: false })
                 .limit(10);
 
@@ -619,23 +634,33 @@
         let resumenActual = null;
 
         async function prepararCierreTurno() {
-            // Capturar pedidos de las últimas 24 horas para evitar problemas de zona horaria (UTC)
-            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-            const { data: pedidos, error } = await sb
+            // 1. Traer todos los pedidos entregados (simple, sin joins que den error 400)
+            const { data: pedidos, error: errP } = await sb
                 .from('pedidos')
-                .select('*, motomandado:motomandado_id(nombre_completo)')
-                .eq('estado', 'entregado')
-                .gte('created_at', yesterday.toISOString());
+                .select('*')
+                .eq('estado', 'entregado');
 
-            if (!pedidos || pedidos.length === 0) return alert("No hay viajes entregados hoy para cerrar el turno.");
+            if (errP || !pedidos || pedidos.length === 0) {
+                return alert("No hay viajes entregados para cerrar el turno.");
+            }
 
+            // 2. Traer los nombres de los conductores involucrados en esos pedidos
+            const motoIds = [...new Set(pedidos.map(p => p.motomandado_id).filter(id => id))];
+            const { data: motos, error: errM } = await sb
+                .from('PERFILES')
+                .select('id, nombre_completo')
+                .in('id', motoIds);
+
+            const mapaMotos = {};
+            if (motos) motos.forEach(m => mapaMotos[m.id] = m.nombre_completo);
+
+            // 3. Procesar el resumen
             const totalViajes = pedidos.length;
             const totalRecaudado = pedidos.reduce((acc, p) => acc + (p.monto || 0), 0);
 
             const porChofer = {};
             pedidos.forEach(p => {
-                const nom = p.motomandado ? p.motomandado.nombre_completo : 'Desconocido';
+                const nom = mapaMotos[p.motomandado_id] || 'Desconocido';
                 if (!porChofer[nom]) porChofer[nom] = { viajes: 0, monto: 0 };
                 porChofer[nom].viajes++;
                 porChofer[nom].monto += (p.monto || 0);
@@ -668,10 +693,17 @@
                 cerrado_por: currentUser.id
             });
             if (error) return alert("Error al guardar cierre: " + error.message);
+            
+            // LIMPIEZA DE PLANILLA: Pasar todos los pedidos del resumen a 'finalizado'
+            const ids = resumenActual.pedidos.map(p => p.id);
+            await sb.from('pedidos').update({ estado: 'finalizado' }).in('id', ids);
+
             generarArchivoReporte(resumenActual);
-            alert("Cierre guardado y reporte generado.");
+            alert("Cierre guardado, reporte generado y planilla LIMPIADA.");
             document.getElementById('modal-cierre').classList.add('hidden');
             loadCierresHistory();
+            loadFinance();
+            loadRecentOrders();
         }
 
         function generarArchivoReporte(res) {
