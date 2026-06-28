@@ -3,12 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MotomandadoRDT - Cliente</title>
+    <title>Plataforma de Envíos - Cliente</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="variables.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Librerías de Leaflet para el Mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         .app-container { max-width: 600px; margin: 0 auto; padding: var(--spacing-md); min-height: 100vh; display: flex; flex-direction: column; gap: var(--spacing-md); }
         .header { display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-sm) 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -19,12 +25,15 @@
         .button { padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--radius-sm); font-weight: 600; text-align: center; border: none; cursor: pointer; transition: 0.3s; }
         .button--primary { background: var(--gradient-primary); color: white; }
         .button--block { display: block; width: 100%; }
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--spacing-md); }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); display: flex; align-items: center; justify-content: center; z-index: 5000; padding: var(--spacing-md); }
         .hidden { display: none !important; }
         .message { padding: 8px 12px; border-radius: 12px; max-width: 85%; font-size: 0.85rem; }
         .message--client { align-self: flex-end; background: var(--color-accent-primary); color: var(--color-bg-primary); }
         .message--moto { align-self: flex-start; background: rgba(255,255,255,0.1); color: white; }
         .history-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid var(--color-accent-success); }
+        
+        /* Ajuste para el divIcon del mapa */
+        .leaflet-div-icon { background: transparent; border: none; font-size: 24px; line-height: 1; text-align: center; }
     </style>
 </head>
 <body>
@@ -32,8 +41,8 @@
     <div id="auth-modal" class="modal">
         <div class="card" style="width: 100%; max-width: 400px; padding: 2.5rem;">
             <div style="text-align:center; margin-bottom: 25px;">
-               <h2 style="color:white; letter-spacing:2px;">MOTOMANDADO</h2>
-               <p style="font-size:0.75rem; color:var(--color-text-muted);">ACCESO CLIENTES</p>
+               <h2 style="color:white; letter-spacing:2px;">ENVÍOS Y VIAJES</h2>
+               <p style="font-size:0.75rem; color:var(--color-text-muted);">ACCESO CLIENTES (MODO MAPA)</p>
             </div>
             <div class="form">
                 <input type="email" id="auth-email" placeholder="tu@email.com">
@@ -60,14 +69,14 @@
 
     <div class="app-container">
         <header class="header">
-            <span style="font-weight:700; font-size:1.2rem; color:var(--color-accent-primary);">MOTORDT</span>
+            <span style="font-weight:700; font-size:1.2rem; color:var(--color-accent-primary);">MAPA DE SEGUIMIENTO</span>
             <button id="btn-logout" style="background:transparent; border:none; color:var(--color-text-muted); font-size:0.8rem;">SALIR</button>
         </header>
 
         <!-- Seccion Pedido Activo -->
         <div id="active-order-section" class="hidden">
             <div class="card" style="border: 1px solid var(--color-accent-success);">
-                <h3 style="color:var(--color-accent-success); margin-bottom:10px;">🚀 Pedido en Curso</h3>
+                <h3 style="color:var(--color-accent-success); margin-bottom:10px;" id="client-order-title">🚀 Pedido Activo</h3>
                 <div id="active-order-info" style="font-size:0.9rem; line-height:1.5;"></div>
                 
                 <div id="chat-section" style="margin-top:15px; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
@@ -78,28 +87,48 @@
                     </div>
                 </div>
 
-                <button onclick="cancelarPedidoActual()" style="width:100%; margin-top:15px; padding:10px; background:transparent; border:1px solid var(--color-accent-error); color:var(--color-accent-error); border-radius:5px; font-size:0.8rem; font-weight:700;">CANCELAR PEDIDO</button>
+                <button id="btn-cancel-order" onclick="cancelarPedidoActual()" style="width:100%; margin-top:15px; padding:10px; background:transparent; border:1px solid var(--color-accent-error); color:var(--color-accent-error); border-radius:5px; font-size:0.8rem; font-weight:700;">CANCELAR PEDIDO (SOLO PENDIENTES)</button>
             </div>
         </div>
 
-        <!-- Formulario Nuevo Pedido -->
+        <!-- Toast Notification Element -->
+        <div id="toast-notification" style="position:fixed; top:20px; right:20px; background:var(--color-accent-success); color:white; padding:15px 25px; border-radius:8px; font-weight:bold; transform:translateX(150%); transition:transform 0.3s ease; z-index:9999; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
+            Notificación
+        </div>
+
+        <!-- Modal de Estado/Alertas Premium -->
+        <div id="status-modal" class="modal hidden">
+            <div class="card" style="width: 100%; max-width: 400px; text-align: center; border: 1px solid var(--color-accent-primary);">
+                <div id="status-icon" style="font-size: 3rem; margin-bottom: 15px;">🚀</div>
+                <h2 id="status-title" style="margin-bottom: 10px; color: var(--color-accent-primary);">Estado del Pedido</h2>
+                <div id="status-body" style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 20px; color: var(--color-text-muted);">
+                    <!-- Info dinámica -->
+                </div>
+                <button onclick="closeStatusModal()" class="button button--primary" style="width: 100%;">ENTENDIDO</button>
+            </div>
+        </div>
+
+        <!-- Formulario Nuevo Pedido CON MAPA -->
         <section class="card" id="new-order-section">
-            <h3 style="margin-bottom:15px;">¿A dónde vamos?</h3>
+            <h3 style="margin-bottom:5px;">Solicitar Mandado</h3>
+            <p style="font-size:0.75rem; color:var(--color-text-muted); margin-bottom:15px;">Confirma las ubicaciones en el mapa.</p>
+            
+            <div id="map" style="height: 250px; width: 100%; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); z-index: 1;"></div>
+
             <div class="form">
-                <input type="text" id="order-origin" placeholder="📍 Origen (Ej: San Martin 120)">
-                <input type="text" id="order-dest" placeholder="🏁 Destino (Ej: Urquiza 400)">
+                <input type="text" id="order-origin-text" placeholder="Escribe tu origen o mueve el pin 🟢..." style="font-size:0.85rem; padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
+                <input type="text" id="order-dest-text" placeholder="Escribe tu destino o mueve el pin 🔴..." style="font-size:0.85rem; padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
                 <input type="number" id="order-compra" placeholder="💰 Costo de Compra (opcional)">
-                <textarea id="order-desc" placeholder="📦 ¿Qué llevamos? (Detalles)" rows="2"></textarea>
+                <textarea id="order-desc" placeholder="📦 Detalles (Ej: Casa rejas blancas, timbre 2)" rows="2"></textarea>
                 
-                <div id="price-preview" class="hidden" style="background:rgba(255,255,255,0.03); padding:15px; border-radius:8px; border:1px dashed var(--color-accent-primary);">
+                <div id="price-preview" style="background:rgba(255,255,255,0.03); padding:15px; border-radius:8px; border:1px dashed var(--color-accent-primary);">
                     <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:var(--color-text-muted);">
-                        <span>Distancia: <span id="preview-dist" style="color:var(--color-accent-primary); font-weight:600;">-</span></span>
+                        <span>Distancia GPS: <span id="preview-dist" style="color:var(--color-accent-primary); font-weight:600;">Calculando...</span></span>
                         <span>Total: <span id="preview-total" style="color:var(--color-accent-success); font-weight:700; font-size:1.1rem;">$0</span></span>
                     </div>
-                    <small id="preview-detail" style="font-size:0.65rem; color:var(--color-text-muted); display:block; margin-top:5px;"></small>
                 </div>
 
-                <button class="button button--primary button--block" id="btn-create-order" style="padding:15px; font-size:1rem;">SOLICITAR MOTO</button>
+                <button class="button button--primary button--block" id="btn-create-order" style="padding:15px; font-size:1rem;">SOLICITAR ENVÍO/VIAJE</button>
             </div>
         </section>
 
@@ -119,7 +148,10 @@
         let currentUser = null;
         let activeOrder = null;
         let configGlobal = { precio_base: 2500, ciudad: 'Rosario del Tala', provincia: 'Entre Ríos', numeros_por_cuadra: 50 };
-        let currentCalculation = { cuadras: 0, monto: 0 };
+        let currentCalculation = { cuadras: 0, monto: 0, coords: null };
+
+        let map, markerOrigen, markerDestino;
+        let mapInitialized = false;
 
         // CONFIG & AUTH
         async function loadConfig() {
@@ -131,6 +163,32 @@
             const { data: { session } } = await sb.auth.getSession();
             if (session) {
                 currentUser = session.user;
+
+                // Verificar si existe el perfil en la tabla PERFILES
+                let { data: profile } = await sb
+                    .from('PERFILES')
+                    .select('role')
+                    .eq('id', currentUser.id)
+                    .maybeSingle();
+
+                // Si no existe el perfil (por un Zeroize) lo recreamos
+                if (!profile && currentUser.user_metadata) {
+                    const meta = currentUser.user_metadata;
+                    const { error: errProf } = await sb.from('PERFILES').insert({
+                        id: currentUser.id,
+                        nombre_completo: meta.nombre_completo || 'Cliente Sin Nombre',
+                        telefono: meta.telefono || '',
+                        role: 'cliente'
+                    });
+                    if (errProf) console.error("Error crítico al recrear perfil:", errProf);
+                    else {
+                        console.log("Perfil restaurado con éxito.");
+                        window.profileReady = true;
+                    }
+                } else {
+                    window.profileReady = true;
+                }
+
                 document.getElementById('auth-modal').classList.add('hidden');
                 document.getElementById('client-register-modal').classList.add('hidden');
                 await checkActiveOrder();
@@ -138,180 +196,338 @@
             }
         }
 
-        // PRICE LOGIC
-        let calcTimeout;
-        const triggerCalculation = () => {
-            clearTimeout(calcTimeout);
-            calcTimeout = setTimeout(presupuestarPedido, 800);
-        };
-        document.getElementById('order-origin').oninput = triggerCalculation;
-        document.getElementById('order-dest').oninput = triggerCalculation;
-        document.getElementById('order-compra').oninput = triggerCalculation;
+        // LÓGICA DEL MAPA
+        async function initMap() {
+            if (mapInitialized) return;
+            mapInitialized = true;
 
-        async function presupuestarPedido() {
-            const origin = document.getElementById('order-origin').value.trim();
-            const dest = document.getElementById('order-dest').value.trim();
-            const compra = parseFloat(document.getElementById('order-compra').value) || 0;
-            if (origin.length < 4 || dest.length < 4) return;
+            let lat = -32.3025, lon = -59.1458; // Default Tala aprox
+            try {
+                const q = `${configGlobal.ciudad}, ${configGlobal.provincia}, Argentina`;
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`);
+                const data = await res.json();
+                if (data && data.length > 0) { lat = parseFloat(data[0].lat); lon = parseFloat(data[0].lon); }
+            } catch(e) {}
 
-            document.getElementById('price-preview').classList.remove('hidden');
-            document.getElementById('preview-dist').textContent = "...";
+            map = L.map('map').setView([lat, lon], 15);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
 
-            const dist = await calcularDistancia(origin, dest);
-            const costoViaje = configGlobal.precio_base + (dist.cuadras * (configGlobal.precio_base * 0.02));
-            const total = Math.round(costoViaje + compra);
-            currentCalculation = { cuadras: dist.cuadras, monto: total };
+            const iconOrigen = L.divIcon({ html: '🟢', className: 'leaflet-div-icon', iconSize: [24,24], iconAnchor: [12,12] });
+            const iconDestino = L.divIcon({ html: '🔴', className: 'leaflet-div-icon', iconSize: [24,24], iconAnchor: [12,12] });
 
-            document.getElementById('preview-dist').textContent = `${dist.cuadras} cuadras`;
-            document.getElementById('preview-total').textContent = `$${total.toLocaleString()}`;
-            document.getElementById('preview-detail').textContent = dist.detalle;
+            markerOrigen = L.marker([lat - 0.002, lon - 0.002], { draggable: true, icon: iconOrigen }).addTo(map);
+            markerDestino = L.marker([lat + 0.002, lon + 0.002], { draggable: true, icon: iconDestino }).addTo(map);
+
+            markerOrigen.on('dragend', () => updateRutaMap(true));
+            markerDestino.on('dragend', () => updateRutaMap(true));
+            
+            // Eventos para mover los pines cuando el usuario escribe
+            let timerOrig, timerDest;
+            document.getElementById('order-origin-text').addEventListener('input', (e) => {
+                clearTimeout(timerOrig);
+                timerOrig = setTimeout(() => buscarYubicarPin(e.target.value.replace('🟢 ', ''), markerOrigen), 1200);
+            });
+            document.getElementById('order-dest-text').addEventListener('input', (e) => {
+                clearTimeout(timerDest);
+                timerDest = setTimeout(() => buscarYubicarPin(e.target.value.replace('🔴 ', ''), markerDestino), 1200);
+            });
+
+            // Retrasar la primera actualización para que se vea fluido
+            setTimeout(() => updateRutaMap(true), 500);
         }
 
-        async function calcularDistancia(origen, destino) {
-            const ciudad = configGlobal.ciudad;
-            const provincia = configGlobal.provincia;
-            const pais = "Argentina";
+        async function buscarYubicarPin(texto, marker) {
+            if (texto.length < 3) return;
+            document.getElementById('preview-dist').textContent = "Buscando calle...";
             try {
-                const getCoords = async (dir) => {
-                    const q = `${dir}, ${ciudad}, ${provincia}, ${pais}`;
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`);
-                    const data = await res.json();
-                    if (data && data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
-                    const street = dir.split(' ')[0];
-                    const res2 = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(street + ', ' + ciudad)}&format=json&limit=1`);
-                    const data2 = await res2.json();
-                    return data2 && data2.length > 0 ? { lat: data2[0].lat, lon: data2[0].lon } : null;
-                };
-                const c1 = await getCoords(origen);
-                const c2 = await getCoords(destino);
-                if (c1 && c2) {
-                    const route = await fetch(`https://router.project-osrm.org/route/v1/driving/${c1.lon},${c1.lat};${c2.lon},${c2.lat}?overview=false`);
-                    const rData = await route.json();
-                    if (rData.code === 'Ok') {
-                        const m = rData.routes[0].distance;
-                        return { cuadras: Math.max(1, Math.round(m/100)), detalle: `Ruta real GPS: ${(m/1000).toFixed(1)} km` };
-                    }
-                }
-            } catch(e){}
-            
-            // Failsafe: Cálculo manual matemático si el GPS falla
-            try {
-                // Buscamos el primer bloque de números en la dirección escrita
-                const numOrigen = origen.match(/\d+/) ? parseInt(origen.match(/\d+/)[0]) : 0;
-                const numDestino = destino.match(/\d+/) ? parseInt(destino.match(/\d+/)[0]) : 0;
+                // Buscamos la calle en la ciudad actual
+                const q = `${texto}, ${configGlobal.ciudad}, ${configGlobal.provincia}, Argentina`;
+                let res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`);
+                let data = await res.json();
                 
-                if (numOrigen > 0 || numDestino > 0) {
-                    const diferenciaNumeros = Math.abs(numDestino - numOrigen);
-                    const divisor = configGlobal.numeros_por_cuadra || 50;
-                    let cuadrasEstimadas = Math.round(diferenciaNumeros / divisor);
-                    
-                    // Si son calles diferentes, sumamos unas 4 cuadras "transversales" promedio
-                    const calleOrig = origen.replace(/\d+/g, '').trim().toLowerCase();
-                    const calleDest = destino.replace(/\d+/g, '').trim().toLowerCase();
-                    if (calleOrig !== calleDest) {
-                        cuadrasEstimadas += 4; 
-                    }
-                    
-                    // Aseguramos un mínimo de 1 cuadra, y un máximo de 60 para evitar tarifas locas
-                    // si por error el cliente escribe su número de teléfono en lugar de la altura
-                    cuadrasEstimadas = Math.max(1, Math.min(cuadrasEstimadas, 60));
-                    
-                    return { 
-                        cuadras: cuadrasEstimadas, 
-                        detalle: `Cálculo manual estimado (~${cuadrasEstimadas}c)` 
-                    };
+                // Si no encuentra por numeración exacta, buscamos solo el nombre de la calle
+                if (!data || data.length === 0) {
+                    const calleSinNumero = texto.replace(/\d+/g, '').trim();
+                    res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(calleSinNumero + ', ' + configGlobal.ciudad)}&format=json&limit=1`);
+                    data = await res.json();
                 }
-            } catch(ex) {
-                console.error("Error en cálculo manual:", ex);
+
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+                    marker.setLatLng([lat, lon]);
+                    map.setView([lat, lon], 16);
+                    updateRutaMap(false); // Falso para no sobreescribir el texto que el usuario acaba de escribir
+                } else {
+                    document.getElementById('preview-dist').textContent = "Calle no encontrada en el mapa. Mueve el pin manual.";
+                }
+            } catch(e) {}
+        }
+
+        async function updateRutaMap(updateText = true) {
+            document.getElementById('preview-dist').textContent = "Calculando GPS...";
+            const o = markerOrigen.getLatLng();
+            const d = markerDestino.getLatLng();
+
+            // Reverse Geocoding (Convertir GPS a Nombre de calle) solo si se movió el pin manualmente
+            if (updateText) {
+                try {
+                    const rO = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${o.lat}&lon=${o.lng}&format=json`);
+                    const dO = await rO.json();
+                    if(dO.address && dO.address.road) document.getElementById('order-origin-text').value = `🟢 ${dO.address.road} ${dO.address.house_number||''}`.trim();
+
+                    const rD = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${d.lat}&lon=${d.lng}&format=json`);
+                    const dD = await rD.json();
+                    if(dD.address && dD.address.road) document.getElementById('order-dest-text').value = `🔴 ${dD.address.road} ${dD.address.house_number||''}`.trim();
+                } catch(e) {}
             }
 
-            // Último recurso si no escriben números (ej. "San Martin y Belgrano")
-            return { cuadras: 5, detalle: "Tarifa Base Promedio" };
+            // Calcular distancia OSRM (o usar distancia matemática si el servidor externo falla)
+            let m = 0;
+            try {
+                const route = await fetch(`https://router.project-osrm.org/route/v1/driving/${o.lng},${o.lat};${d.lng},${d.lat}?overview=false`);
+                const rData = await route.json();
+                if (rData.code === 'Ok') {
+                    m = rData.routes[0].distance;
+                } else {
+                    throw new Error("OSRM devolvió error");
+                }
+            } catch(e) {
+                // Si el servidor público de rutas está saturado, calculamos la distancia 
+                // geométrica real entre los dos puntos y le sumamos un 30% (factor de calles/esquinas)
+                m = o.distanceTo(d) * 1.3;
+            }
+
+            const cuadras = Math.max(1, Math.round(m/100)); // 1 cuadra = 100m
+            
+            const compra = parseFloat(document.getElementById('order-compra').value) || 0;
+            const costoViaje = configGlobal.precio_base + (cuadras * (configGlobal.precio_base * 0.02));
+            const total = Math.round(costoViaje + compra);
+            
+            currentCalculation = { cuadras, monto: total, coords: {o, d} };
+            
+            document.getElementById('preview-dist').textContent = `${cuadras} cuadras GPS`;
+            document.getElementById('preview-total').textContent = `$${total.toLocaleString()}`;
         }
+
+        document.getElementById('order-compra').oninput = updateRutaMap;
 
         // ORDERS & TIMEOUT
         document.getElementById('btn-create-order').onclick = async () => {
-            const origin = document.getElementById('order-origin').value;
-            const dest = document.getElementById('order-dest').value;
+            if (!window.profileReady) {
+                return showStatusModal("⌛ Preparando Perfil", "Estamos configurando tu cuenta. Intenta de nuevo en un segundo.", "⚙️");
+            }
+
+            // --- REFUERZO DE SEGURIDAD: Asegurar perfil correcto ---
+            const { data: myProf } = await sb.from('PERFILES').select('role').eq('id', currentUser.id).maybeSingle();
+            if (!myProf || myProf.role !== 'cliente') {
+                await sb.from('PERFILES').upsert({
+                    id: currentUser.id,
+                    nombre_completo: currentUser.user_metadata?.full_name || 'Usuario',
+                    role: 'cliente'
+                });
+            }
+            // -------------------------------------------------------
+
+            const originText = document.getElementById('order-origin-text').value.replace('🟢 ', '');
+            const destText = document.getElementById('order-dest-text').value.replace('🔴 ', '');
             const desc = document.getElementById('order-desc').value;
             const compra = parseFloat(document.getElementById('order-compra').value) || 0;
-            if(!origin || !dest) return alert("Completa origen y destino");
 
-            // --- NUEVO: Control de Demanda ---
-            const { count: activosCount } = await sb.from('PERFILES').select('*', { count: 'exact', head: true }).eq('role', 'repartidor').eq('esta_activo', true);
-            const { count: pendientesCount } = await sb.from('pedidos').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente');
-            
-            if (pendientesCount >= (activosCount || 0) * 2) {
-                return alert("En este momento la demanda es alta. Aguarde y vuelva a intentar en un minuto.");
-            }
-            // ---------------------------------
+            const { data: existing } = await sb.from('pedidos')
+                .select('id')
+                .eq('cliente_id', currentUser.id)
+                .in('estado', ['pendiente', 'aceptado', 'en_origen', 'en_viaje', 'en_destino'])
+                .limit(1);
 
-            if (currentCalculation.monto === 0) await presupuestarPedido();
-
-            const { data: nextD } = await sb.from('PERFILES').select('id').eq('role', 'repartidor').eq('esta_activo', true).order('ultima_vez_libre', { ascending: true }).limit(1);
-            const driverId = nextD && nextD.length > 0 ? nextD[0].id : null;
-
-            const { data: order, error } = await sb.from('pedidos').insert({
-                cliente_id: currentUser.id,
-                descripcion: `${origin} -> ${dest} | ${desc}`,
-                estado: 'pendiente',
-                monto: currentCalculation.monto,
-                distancia_cuadras: currentCalculation.cuadras,
-                costo_compra: compra,
-                asignado_a: driverId,
-                asignado_en: driverId ? new Date().toISOString() : null
-            }).select().single();
-
-            if (error) alert(error.message);
-            else {
-                alert("Pedido solicitado con éxito.");
+            if (existing && existing.length > 0) {
+                showStatusModal("⚠️ Pedido en Curso", "Ya tienes un viaje activo. Por favor, finaliza el actual antes de pedir otro.", "🛵");
                 checkActiveOrder();
-                if (order) startWatchdog(order.id);
+                return;
+            }
+
+            const pedidoData = {
+                cliente_id: currentUser.id,
+                descripcion: `${originText} -> ${destText} | Notas: ${desc}`,
+                estado: 'pendiente',
+                monto: currentCalculation.monto || 0,
+                distancia_cuadras: currentCalculation.cuadras || 0
+            };
+
+            if (compra > 0) pedidoData.costo_compra = compra;
+
+            // 2. Inserción directa
+            const { error } = await sb.from('pedidos').insert(pedidoData);
+
+            if (error) {
+                console.error("Error al crear pedido:", error);
+                // Si el error persiste, es probable que la política RLS sea aún más estricta
+                showStatusModal("❌ Error de Envío", "La base de datos rechazó el pedido. Detalles: " + error.message, "🚫");
+            } else {
+                showStatusModal("✅ Pedido Enviado", "Buscando al conductor más cercano...", "🛵");
+                
+                // Buscamos el ID asignado para iniciar el rastreo
+                const { data: lastOrder } = await sb.from('pedidos')
+                    .select('id')
+                    .eq('cliente_id', currentUser.id)
+                    .eq('estado', 'pendiente')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                checkActiveOrder();
+                if (lastOrder && lastOrder.length > 0) startWatchdog(lastOrder[0].id);
             }
         };
 
         function startWatchdog(orderId) {
             const startTime = new Date();
             const interval = setInterval(async () => {
-                const { data: o } = await sb.from('pedidos').select('*').eq('id', orderId).single();
+                const { data: o } = await sb.from('pedidos').select('*').eq('id', orderId).maybeSingle();
                 if (!o || o.estado !== 'pendiente') return clearInterval(interval);
 
                 const totalSecs = (new Date() - startTime) / 1000;
                 if (totalSecs > 300) { // 5 minutos total
                     clearInterval(interval);
                     await sb.from('pedidos').update({ estado: 'cancelado' }).eq('id', orderId);
-                    alert("⚠️ No se encontró conductor en 5 minutos. Pedido cancelado.");
+                    showStatusModal("⏰ Tiempo Expirado", "No encontramos conductores disponibles. El pedido se canceló.", "📭");
                     checkActiveOrder();
-                } else if (!o.asignado_a || (new Date() - new Date(o.asignado_en)) > 60000) {
-                    const { data: next } = await sb.from('PERFILES').select('id').eq('role', 'repartidor').eq('esta_activo', true).order('ultima_vez_libre', { ascending: true }).limit(1);
+                } else if (!o.motomandado_id || (new Date() - new Date(o.created_at)) > 120000) {
+                    // Buscar conductor con soporte para nulos (post-zeroize)
+                    const { data: next } = await sb.from('PERFILES')
+                        .select('id')
+                        .eq('role', 'repartidor')
+                        .eq('esta_activo', true)
+                        .order('ultima_vez_libre', { ascending: true, nullsFirst: true })
+                        .limit(1);
+                    
                     if (next && next.length > 0) {
-                        await sb.from('pedidos').update({ asignado_a: next[0].id, asignado_en: new Date().toISOString() }).eq('id', orderId);
+                        await sb.from('pedidos').update({ motomandado_id: next[0].id }).eq('id', orderId);
                     }
                 }
             }, 10000);
         }
 
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            toast.innerText = message;
+            toast.style.transform = 'translateX(0)';
+            try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch(e){}
+            setTimeout(() => { toast.style.transform = 'translateX(150%)'; }, 4000);
+        }
+
+        function showStatusModal(title, body, icon = "🚀") {
+            document.getElementById('status-title').innerText = title;
+            document.getElementById('status-body').innerHTML = body;
+            document.getElementById('status-icon').innerText = icon;
+            document.getElementById('status-modal').classList.remove('hidden');
+        }
+
+        function closeStatusModal() {
+            document.getElementById('status-modal').classList.add('hidden');
+        }
+
+        let lastOrderStatus = '';
+        const ACTIVE_STATES = ['pendiente', 'aceptado', 'en_origen', 'en_viaje', 'en_destino', 'entregado'];
+
         async function checkActiveOrder() {
-            const { data } = await sb.from('pedidos').select('*, motomandado:PERFILES!motomandado_id(nombre_completo)').eq('cliente_id', currentUser.id).in('estado', ['pendiente', 'en_viaje']).order('created_at', { ascending: false }).limit(1);
+            const { data } = await sb.from('pedidos').select('*').eq('cliente_id', currentUser.id).in('estado', ACTIVE_STATES).order('created_at', { ascending: false }).limit(1);
             if (data && data.length > 0) {
-                activeOrder = data[0];
+                const order = data[0];
+                
+                // Si el usuario ya cerró este pedido localmente, no lo mostramos como activo
+                if (localStorage.getItem('dismissed_' + order.id)) {
+                    activeOrder = null;
+                    document.getElementById('active-order-section').classList.add('hidden');
+                    document.getElementById('new-order-section').classList.remove('hidden');
+                    setTimeout(initMap, 500);
+                    return;
+                }
+
+                activeOrder = order;
+                
+                if (lastOrderStatus !== activeOrder.estado) {
+                    if (activeOrder.estado === 'aceptado') showStatusModal("✅ ¡Pedido Aceptado!", "Un conductor ha tomado tu pedido y va en camino al origen.", "🏍️");
+                    else if (activeOrder.estado === 'en_origen') showStatusModal("📍 Conductor en Origen", "El repartidor ya llegó al punto de retiro.", "📌");
+                    else if (activeOrder.estado === 'en_viaje') showStatusModal("🛵 Pedido en Viaje", "El conductor ya tiene tu pedido y va hacia el destino.", "🚀");
+                    else if (activeOrder.estado === 'en_destino') showStatusModal("🏁 Conductor en Destino", "El repartidor ha llegado al punto de entrega.", "✅");
+                }
+                lastOrderStatus = activeOrder.estado;
+                
+                subscribeChat(activeOrder.id);
+                
                 document.getElementById('active-order-section').classList.remove('hidden');
                 document.getElementById('new-order-section').classList.add('hidden');
-                const mName = activeOrder.motomandado ? activeOrder.motomandado.nombre_completo : "Buscando...";
+                
+                // Fetch driver profile without join
+                let mName = "Buscando...";
+                if (activeOrder.motomandado_id) {
+                    const { data: motoData } = await sb.from('PERFILES').select('nombre_completo').eq('id', activeOrder.motomandado_id).single();
+                    if (motoData) mName = motoData.nombre_completo;
+                }
+                
+                let estadoFormat = activeOrder.estado.toUpperCase().replace('_', ' ');
+                document.getElementById('client-order-title').innerText = `🚀 Pedido: ${estadoFormat}`;
+                
+                if (activeOrder.estado !== 'pendiente') {
+                    document.getElementById('btn-cancel-order').style.display = 'none';
+                } else {
+                    document.getElementById('btn-cancel-order').style.display = 'block';
+                }
+                
                 document.getElementById('active-order-info').innerHTML = `
-                    <p><strong>De:</strong> ${activeOrder.descripcion.split('->')[0]}</p>
-                    <p><strong>A:</strong> ${activeOrder.descripcion.split('->')[1].split('|')[0]}</p>
-                    <p><strong>Moto:</strong> <span style="color:var(--color-accent-primary);">${mName}</span></p>
-                    <p><strong>Precio:</strong> <span style="color:var(--color-accent-success);">$${activeOrder.monto + (activeOrder.costo_compra||0)}</span></p>
-                    <small>Estado: ${activeOrder.estado.toUpperCase()}</small>
+                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                            <div>
+                                <label style="font-size:0.6rem; color:var(--color-text-muted); text-transform:uppercase;">Distancia</label>
+                                <div style="font-weight:700; color:var(--color-accent-primary);">${activeOrder.distancia_cuadras || '?'} cuadras</div>
+                            </div>
+                            <div>
+                                <label style="font-size:0.6rem; color:var(--color-text-muted); text-transform:uppercase;">Costo Total</label>
+                                <div style="font-weight:700; color:var(--color-accent-success);">$${(activeOrder.monto || 0) + (activeOrder.costo_compra || 0)}</div>
+                            </div>
+                        </div>
+                        <p style="margin-bottom:5px;"><strong>Origen:</strong> ${activeOrder.descripcion.split('->')[0]}</p>
+                        <p style="margin-bottom:10px;"><strong>Destino:</strong> ${activeOrder.descripcion.split('->')[1] ? activeOrder.descripcion.split('->')[1].split('|')[0] : ''}</p>
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-top: 1px solid rgba(255,255,255,0.05); pt:10px; margin-top:10px;">
+                           <span style="font-size:0.8rem; color:var(--color-text-muted);">Conductor: <strong>${mName}</strong></span>
+                           <span style="font-size:0.65rem; padding:3px 10px; background:var(--color-accent-primary); color:white; border-radius:12px; font-weight:700;">${estadoFormat}</span>
+                        </div>
+                    </div>
+                    ${activeOrder.estado === 'entregado' ? 
+                        `<button id="btn-close-final" onclick="finalizarLocalmente('${activeOrder.id}')" class="button button--primary" style="width:100%; background:var(--color-accent-success); margin-top:10px;">✅ ENTENDIDO, CERRAR (60s)</button>` : 
+                        (activeOrder.estado === 'en_viaje' || activeOrder.estado === 'en_destino' ? 
+                        `<button onclick="confirmarEntrega('${activeOrder.id}')" class="button button--primary" style="width:100%; background:var(--color-accent-success); margin-top:10px;">✅ ¡YA RECIBÍ MI PEDIDO!</button>` : '')
+                    }
                 `;
                 loadMessages();
+                subscribeChat(activeOrder.id);
+
+                // Si está entregado, iniciar timer de auto-cierre
+                if (activeOrder.estado === 'entregado') {
+                    startCloseTimer(activeOrder.id);
+                }
             } else {
                 activeOrder = null;
                 document.getElementById('active-order-section').classList.add('hidden');
                 document.getElementById('new-order-section').classList.remove('hidden');
+                setTimeout(initMap, 500); // Iniciar mapa si no hay pedido activo
             }
             loadHistory();
+        }
+
+        async function confirmarEntrega(orderId) {
+            if (!confirm("¿Confirmas que ya recibiste tu pedido y todo está en orden?")) return;
+            
+            const { error } = await sb.from('pedidos').update({ estado: 'entregado' }).eq('id', orderId);
+            if (error) showStatusModal("❌ Error", "No se pudo finalizar: " + error.message, "🚫");
+            else {
+                showStatusModal("🏁 ¡Viaje Completado!", "Gracias por usar nuestro servicio. El pedido se ha guardado en tu historial.", "🎉");
+                lastOrderStatus = '';
+                checkActiveOrder();
+            }
         }
 
         async function cancelarPedidoActual() {
@@ -337,6 +553,27 @@
             document.getElementById('btn-toggle-history').innerText = hist.classList.contains('hidden') ? "📦 VER HISTORIAL DE VIAJES" : "🔼 OCULTAR HISTORIAL";
         }
 
+        let closeTimer;
+        function startCloseTimer(orderId) {
+            let timeLeft = 60;
+            if (closeTimer) clearInterval(closeTimer);
+            closeTimer = setInterval(() => {
+                timeLeft--;
+                const btn = document.getElementById('btn-close-final');
+                if (btn) btn.innerText = `✅ ENTENDIDO, CERRAR (${timeLeft}s)`;
+                if (timeLeft <= 0) {
+                    clearInterval(closeTimer);
+                    finalizarLocalmente(orderId);
+                }
+            }, 1000);
+        }
+
+        function finalizarLocalmente(orderId) {
+            if (closeTimer) clearInterval(closeTimer);
+            localStorage.setItem('dismissed_' + orderId, 'true');
+            checkActiveOrder();
+        }
+
         // CHAT
         async function loadMessages() {
             if(!activeOrder) return;
@@ -354,9 +591,36 @@
             if(!error) { input.value = ''; loadMessages(); }
         }
 
+        let chatChannel = null;
+        function subscribeChat(pedidoId) {
+            if (!pedidoId) return;
+            const channelName = `chat-${pedidoId}`;
+            
+            // Evitar duplicados
+            if (window.chatSub && window.chatSub.topic === `realtime:${channelName}`) return;
+
+            if (window.chatSub) sb.removeChannel(window.chatSub);
+            
+            window.chatSub = sb.channel(channelName)
+                .on('postgres_changes', { 
+                    event: 'INSERT', 
+                    schema: 'public', 
+                    table: 'mensajes', 
+                    filter: `pedido_id=eq.${pedidoId}` 
+                }, () => {
+                    loadMessages();
+                })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') console.log("Canal de Chat Activo:", channelName);
+                });
+        }
+
         function subscribeRealtime() {
-            sb.channel('db-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, checkActiveOrder)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes' }, loadMessages).subscribe();
+            sb.channel('public:pedidos_cliente')
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos', filter: `cliente_id=eq.${currentUser.id}` }, () => {
+                    checkActiveOrder();
+                })
+                .subscribe();
         }
 
         // AUTH CLICKS
@@ -372,8 +636,9 @@
         };
         document.getElementById('btn-logout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
 
-        loadConfig();
-        checkSession();
+        loadConfig().then(() => {
+            checkSession();
+        });
     </script>
 </body>
 </html>

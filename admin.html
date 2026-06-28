@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Admin - MotomandadoRDT</title>
+    <title>Panel Admin - Envíos y Viajes</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="variables.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -109,8 +109,8 @@
 
     <div id="admin-auth" class="modal">
         <div class="card" style="width:100%; max-width:400px; padding:2rem; text-align:center;">
-            <h1 class="header__title" style="margin-bottom:5px;">moto<span
-                    style="color:var(--color-text-main);">·</span>mandado</h1>
+            <h1 class="header__title" style="margin-bottom:5px;">envíos<span
+                    style="color:var(--color-text-main);">·</span>viajes</h1>
             <p
                 style="font-size:0.75rem; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:2px; margin-bottom: 25px;">
                 Acceso Administrador</p>
@@ -119,7 +119,7 @@
                 <label class="form__label"
                     style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Email
                     Admin</label>
-                <input type="email" id="email" placeholder="admin@motomandado.com" style="width:100%;">
+                <input type="email" id="email" placeholder="admin@agencia.com" style="width:100%;">
             </div>
             <div class="form__group" style="text-align:left; margin-bottom: 25px; position:relative;">
                 <label class="form__label"
@@ -137,7 +137,7 @@
         <div style="text-align:center; margin-bottom: 20px;">
             <h1
                 style="font-family: var(--font-heading); font-size: 2.5rem; color: var(--color-accent-primary); letter-spacing: 2px; line-height: 1;">
-                moto<span style="color:var(--color-text-main);">·</span>mandado</h1>
+                envíos<span style="color:var(--color-text-main);">·</span>viajes</h1>
             <p
                 style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 2px;">
                 Panel de Administración Central</p>
@@ -707,7 +707,7 @@
         }
 
         function generarArchivoReporte(res) {
-            let txt = `INFORME DE CIERRE - MOTOMANDADOR RDT\nFecha: ${new Date().toLocaleString()}\n`;
+            let txt = `INFORME DE CIERRE - ENVÍOS Y VIAJES\nFecha: ${new Date().toLocaleString()}\n`;
             txt += `-------------------------------------------\nTOTAL VIAJES: ${res.totalViajes}\nTOTAL RECAUDADO: $${res.totalRecaudado}\n\n`;
             txt += `DETALLE POR CHOFER:\n`;
             for (const nom in res.porChofer) txt += `- ${nom}: ${res.porChofer[nom].viajes} viajes | $${res.porChofer[nom].monto}\n`;
@@ -750,7 +750,7 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Backup_Motomandado_${new Date().toISOString().split('T')[0]}.json`;
+                a.download = `Backup_Sistema_${new Date().toISOString().split('T')[0]}.json`;
                 a.click();
 
                 alert("Backup descargado con éxito. La página se recargará para asegurar la integridad de la sesión.");
