@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Factura - KSMServicios</title>
+  <style>
+    :root {
+      --bg: #fff;
+      --text: #111;
+      --acc: #f5a623;
+      --border: #eee;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 40px;
+      margin: 0;
+    }
+
+    .invoice-box {
+      max-width: 800px;
+      margin: auto;
+      padding: 30px;
+      border: 1px solid var(--border);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+      font-size: 16px;
+      line-height: 24px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 2px solid var(--acc);
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 32px;
+      color: var(--acc);
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .info-col {
+      width: 48%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th,
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    th {
+      background: #f9f9f9;
+      font-weight: bold;
+    }
+
+    .total-row {
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .total-row td {
+      border-top: 2px solid var(--text);
+    }
+
+    .notes {
+      margin-top: 40px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px dashed transparent;
+      font-size: inherit;
+      font-family: inherit;
+      padding: 4px;
+      transition: 0.2s;
+      background: transparent;
+    }
+
+    input:hover,
+    textarea:hover,
+    input:focus,
+    textarea:focus {
+      border-color: #ccc;
+      outline: none;
+      background: #fafafa;
+    }
+
+    @media print {
+      body {
+        padding: 0;
+      }
+
+      .invoice-box {
+        border: none;
+        box-shadow: none;
+      }
+
+      .no-print {
+        display: none;
+      }
+
+      input,
+      textarea {
+        border: none !important;
+        background: transparent !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="no-print" style="margin-bottom: 20px; text-align:center;">
+    <button onclick="window.print()"
+      style="padding:10px 20px; background:#f5a623; color:#111; border:none; border-radius: 8px; font-weight:bold; cursor:pointer;">🖨️
+      IMPRIMIR / GUARDAR COMO PDF</button>
+  </div>
+  <div class="invoice-box">
+    <div class="header">
+      <div class="logo">KSMSERVICIOS</div>
+      <div class="title">COMPROBANTE DE SERVICIO</div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-col">
+        <strong>Emitido a:</strong><br>
+        <input type="text" value="[Nombre de la Empresa o Grupo Logístico]"><br>
+        <input type="text" value="[Dirección del Cliente / Ciudad]">
+      </div>
+      <div class="info-col" style="text-align:right;">
+        <strong>Fecha de Emisión:</strong> <input type="date" style="text-align:right;"><br>
+        <strong>Nº Comprobante:</strong> <input type="text" value="KSM-0001" style="text-align:right; width: 100px;">
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Descripción del Servicio</th>
+          <th style="text-align:center;">Plan Elegido</th>
+          <th style="text-align:right;">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <strong>Instalación y Configuración del Sistema KSM Logística (Setup Inicial)</strong><br>
+            <small>- Despliegue de Base de Datos Privada (Arquitectura aislada en Supabase)<br>
+              - Configuración de Paneles (Admin, Cliente, Conductor)<br>
+              - Integración de ruteo GPS y sistema de contingencia anti-saturación<br>
+              <em>*Incluye Prueba Piloto de 14 Días Libres de Comisión Operativa</em></small>
+          </td>
+          <td style="text-align:center;"><input type="text" value="Crecimiento Equilibrado" style="text-align:center;">
+          </td>
+          <td style="text-align:right;"><input type="text" value="$100.000,00"
+              style="text-align:right; font-weight:bold;"></td>
+        </tr>
+        <tr>
+          <td>
+            <strong>Mantenimiento de Servidor y Soporte Técnico (Mes 1)</strong>
+          </td>
+          <td style="text-align:center;">-</td>
+          <td style="text-align:right;">Bonificado</td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="2" style="text-align:right; padding-top: 20px;">TOTAL A PAGAR (ARS)</td>
+          <td style="text-align:right; padding-top: 20px;"><input type="text" value="$100.000,00"
+              style="text-align:right; font-size:20px; font-weight:bold; color:var(--acc);"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="notes">
+      <strong>Instrucciones de Pago:</strong><br>
+      <textarea rows="3">CBU 0110447330044713424301  / Alias: saultula  Banco de la Nacion Argentina
+MercadoPago: CVU 0000003100039099684390 / Alias: SAUL.TULA.MP
+Titular: [Saul Fernando Tula]</textarea>
+      <br><br>
+      <em>Este comprobante es un documento comercial de uso interno para la confirmación de la instalación tecnológica
+        B2B. Conforme a la cláusula de Términos y Condiciones, todo pago en concepto de SETUP inicial no es reembolsable
+        debido a los costos irrevocables de despliegue de infraestructura, configuración de servidores y personalización
+        del software.</em>
+    </div>
+  </div>
+</body>
+
+</html>
