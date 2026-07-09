@@ -326,11 +326,17 @@
 
                 const { data: profile } = await sb
                     .from('PERFILES')
-                    .select('role')
+                    .select('role, esta_activo')
                     .eq('id', session.user.id)
                     .maybeSingle();
 
                 if (profile && profile.role === 'admin') {
+                    if (profile.esta_activo === false) {
+                        alert("Su cuenta se encuentra SUSPENDIDA por falta de pago. Por favor contacte con el soporte.");
+                        await sb.auth.signOut();
+                        location.reload();
+                        return;
+                    }
                     currentUser = session.user;
                     document.getElementById('admin-auth').classList.add('hidden');
                     document.getElementById('admin-content').classList.remove('hidden');
@@ -418,6 +424,7 @@
                 .from('PERFILES')
                 .select('*')
                 .eq('role', 'repartidor')
+                .eq('agencia_id', currentUser.id)
                 .order('ultima_vez_libre', { ascending: true }); // FIFO Queue
 
             const container = document.getElementById('admin-drivers');
@@ -460,7 +467,8 @@
             const { data } = await sb
                 .from('PERFILES')
                 .select('*')
-                .eq('role', 'cliente');
+                .eq('role', 'cliente')
+                .eq('agencia_id', currentUser.id);
 
             const container = document.getElementById('admin-clients');
 
@@ -487,7 +495,8 @@
 
             const { data: orders } = await sb
                 .from('pedidos')
-                .select('monto, estado, created_at');
+                .select('monto, estado, created_at')
+                .eq('agencia_id', currentUser.id);
 
             if (orders) {
                 const todayOrders = orders.filter(o => new Date(o.created_at) >= today);
@@ -540,9 +549,11 @@
         async function loadRecentOrders() {
             const { data, error } = await sb
                 .from('pedidos')
-                .select('*')
-                .neq('estado', 'finalizado')
-                .neq('estado', 'cancelado')
+                .select(`
+                    id, descripcion, estado, monto, costo_compra, created_at,
+                    PERFILES!motomandado_id (nombre_completo)
+                `)
+                .eq('agencia_id', currentUser.id)
                 .order('created_at', { ascending: false })
                 .limit(10);
 

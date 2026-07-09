@@ -143,6 +143,11 @@
     <script>
         const SUPABASE_URL = 'https://aodoaefxnnpgjwcyfixx.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_RRSZspZq5acSI3J_eT4HUg_Txykyu2S';
+        // --- ID DE LA AGENCIA ---
+        // Se lee dinámicamente desde la URL del APK (ej: ?agencia=ID). Si no existe, usa Villaguay por defecto.
+        const urlParams = new URLSearchParams(window.location.search);
+        const AGENCIA_ID = urlParams.get('agencia') || '71c0c746-ad05-4771-bc22-fd9f610032c3'; 
+        
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentUser = null;
@@ -178,7 +183,8 @@
                         id: currentUser.id,
                         nombre_completo: meta.nombre_completo || 'Cliente Sin Nombre',
                         telefono: meta.telefono || '',
-                        role: 'cliente'
+                        role: 'cliente',
+                        agencia_id: meta.agencia_id || AGENCIA_ID
                     });
                     if (errProf) console.error("Error crítico al recrear perfil:", errProf);
                     else {
@@ -322,12 +328,13 @@
             }
 
             // --- REFUERZO DE SEGURIDAD: Asegurar perfil correcto ---
-            const { data: myProf } = await sb.from('PERFILES').select('role').eq('id', currentUser.id).maybeSingle();
+            const { data: myProf } = await sb.from('PERFILES').select('role, agencia_id').eq('id', currentUser.id).maybeSingle();
             if (!myProf || myProf.role !== 'cliente') {
                 await sb.from('PERFILES').upsert({
                     id: currentUser.id,
                     nombre_completo: currentUser.user_metadata?.full_name || 'Usuario',
-                    role: 'cliente'
+                    role: 'cliente',
+                    agencia_id: currentUser.user_metadata?.agencia_id || null
                 });
             }
             // -------------------------------------------------------
@@ -351,6 +358,7 @@
 
             const pedidoData = {
                 cliente_id: currentUser.id,
+                agencia_id: myProf ? myProf.agencia_id : (currentUser.user_metadata?.agencia_id || AGENCIA_ID),
                 descripcion: `${originText} -> ${destText} | Notas: ${desc}`,
                 estado: 'pendiente',
                 monto: currentCalculation.monto || 0,
@@ -628,10 +636,24 @@
             const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('auth-email').value, password: document.getElementById('auth-pass').value });
             if (error) alert(error.message); else checkSession();
         };
-        document.getElementById('link-show-register').onclick = () => { document.getElementById('auth-modal').classList.add('hidden'); document.getElementById('client-register-modal').classList.remove('hidden'); };
+        document.getElementById('link-show-register').onclick = () => { 
+            document.getElementById('auth-modal').classList.add('hidden'); 
+            document.getElementById('client-register-modal').classList.remove('hidden'); 
+        };
         document.getElementById('link-back-login').onclick = () => { document.getElementById('client-register-modal').classList.add('hidden'); document.getElementById('auth-modal').classList.remove('hidden'); };
         document.getElementById('btn-register-client').onclick = async () => {
-            const { data, error } = await sb.auth.signUp({ email: document.getElementById('reg-email').value, password: document.getElementById('reg-pass').value, options: { data: { nombre_completo: document.getElementById('reg-name').value, telefono: document.getElementById('reg-phone').value, role: 'cliente' } } });
+            const { data, error } = await sb.auth.signUp({ 
+                email: document.getElementById('reg-email').value, 
+                password: document.getElementById('reg-pass').value, 
+                options: { 
+                    data: { 
+                        nombre_completo: document.getElementById('reg-name').value, 
+                        telefono: document.getElementById('reg-phone').value, 
+                        role: 'cliente',
+                        agencia_id: AGENCIA_ID
+                    } 
+                } 
+            });
             if (error) alert(error.message); else if (data.session) checkSession(); else alert("Verifica tu correo.");
         };
         document.getElementById('btn-logout').onclick = async () => { await sb.auth.signOut(); location.reload(); };

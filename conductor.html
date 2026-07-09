@@ -312,6 +312,11 @@
     <script>
         const SUPABASE_URL = 'https://aodoaefxnnpgjwcyfixx.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_RRSZspZq5acSI3J_eT4HUg_Txykyu2S';
+        // --- ID DE LA AGENCIA ---
+        // Se lee dinámicamente desde la URL del APK (ej: ?agencia=ID). Si no existe, usa Villaguay por defecto.
+        const urlParams = new URLSearchParams(window.location.search);
+        const AGENCIA_ID = urlParams.get('agencia') || '71c0c746-ad05-4771-bc22-fd9f610032c3'; 
+
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentUser = null;
@@ -326,7 +331,7 @@
                 currentUser = session.user;
                 let { data: profile } = await sb
                     .from('PERFILES')
-                    .select('role')
+                    .select('role, agencia_id')
                     .eq('id', session.user.id)
                     .maybeSingle();
 
@@ -338,14 +343,16 @@
                         nombre_completo: meta.nombre_completo,
                         telefono: meta.telefono,
                         role: meta.role,
+                        agencia_id: meta.agencia_id || AGENCIA_ID,
                         esta_activo: false
                     });
                     if (!error) {
-                        profile = { role: meta.role };
+                        profile = { role: meta.role, agencia_id: meta.agencia_id || AGENCIA_ID };
                     }
                 }
 
                 if (profile && profile.role === 'repartidor') {
+                    currentUser.agencia_id = profile.agencia_id;
                     document.getElementById('driver-auth').classList.add('hidden');
                     document.getElementById('driver-register-modal').classList.add('hidden');
                     document.getElementById('driver-content').classList.remove('hidden');
@@ -417,11 +424,17 @@
         }
 
         async function loadPool() {
-            // Solo mostrar pedidos PENDIENTES que NO tengan un conductor asignado todavía
-            const { data } = await sb.from('pedidos')
+            // Solo mostrar pedidos PENDIENTES que NO tengan un conductor asignado todavía y de MI agencia
+            let query = sb.from('pedidos')
                 .select('*')
                 .eq('estado', 'pendiente')
                 .is('motomandado_id', null);
+            
+            if (currentUser.agencia_id) {
+                query = query.eq('agencia_id', currentUser.agencia_id);
+            }
+            
+            const { data } = await query;
             
             const container = document.getElementById('pool-container');
             container.innerHTML = data && data.length ? data.map(o => `
@@ -710,7 +723,8 @@
                     data: {
                         nombre_completo: name,
                         telefono: phone,
-                        role: 'repartidor'
+                        role: 'repartidor',
+                        agencia_id: AGENCIA_ID
                     }
                 }
             });
