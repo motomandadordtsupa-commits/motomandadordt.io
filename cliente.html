@@ -16,10 +16,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        .app-container { max-width: 600px; margin: 0 auto; padding: var(--spacing-md); min-height: 100vh; display: flex; flex-direction: column; gap: var(--spacing-md); }
+        .app-container { max-width: 600px; margin: 0 auto; padding: var(--spacing-sm); min-height: 100vh; display: flex; flex-direction: column; gap: var(--spacing-sm); }
         .header { display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-sm) 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .card { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-md); box-shadow: var(--shadow-premium); border: 1px solid rgba(255,255,255,0.05); }
-        .form { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+        .card { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-sm); box-shadow: var(--shadow-premium); border: 1px solid rgba(255,255,255,0.05); }
+        .form { display: flex; flex-direction: column; gap: 10px; }
         .form__group { display: flex; flex-direction: column; gap: var(--spacing-xs); }
         .form__label { color: var(--color-text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
         .button { padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--radius-sm); font-weight: 600; text-align: center; border: none; cursor: pointer; transition: 0.3s; }
@@ -111,24 +111,24 @@
         <!-- Formulario Nuevo Pedido CON MAPA -->
         <section class="card" id="new-order-section">
             <h3 style="margin-bottom:5px;">Solicitar Mandado</h3>
-            <p style="font-size:0.75rem; color:var(--color-text-muted); margin-bottom:15px;">Confirma las ubicaciones en el mapa.</p>
+            <p style="font-size:0.75rem; color:var(--color-text-muted); margin-bottom:10px;">Confirma las ubicaciones en el mapa.</p>
             
-            <div id="map" style="height: 250px; width: 100%; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); z-index: 1;"></div>
+            <div id="map" style="height: 180px; width: 100%; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.1); z-index: 1;"></div>
 
             <div class="form">
-                <input type="text" id="order-origin-text" placeholder="Escribe tu origen o mueve el pin 🟢..." style="font-size:0.85rem; padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
-                <input type="text" id="order-dest-text" placeholder="Escribe tu destino o mueve el pin 🔴..." style="font-size:0.85rem; padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
-                <input type="number" id="order-compra" placeholder="💰 Costo de Compra (opcional)">
-                <textarea id="order-desc" placeholder="📦 Detalles (Ej: Casa rejas blancas, timbre 2)" rows="2"></textarea>
+                <input type="text" id="order-origin-text" placeholder="Escribe tu origen o mueve el pin 🟢..." style="font-size:0.85rem; padding: 10px; border: 1px solid rgba(255,255,255,0.2);">
+                <input type="text" id="order-dest-text" placeholder="Escribe tu destino o mueve el pin 🔴..." style="font-size:0.85rem; padding: 10px; border: 1px solid rgba(255,255,255,0.2);">
+                <input type="number" id="order-compra" placeholder="💰 Costo de Compra (opcional)" style="padding: 10px; font-size: 0.85rem;">
+                <textarea id="order-desc" placeholder="📦 Detalles (Ej: Casa rejas blancas, timbre 2)" rows="2" style="padding: 10px; font-size: 0.85rem;"></textarea>
                 
-                <div id="price-preview" style="background:rgba(255,255,255,0.03); padding:15px; border-radius:8px; border:1px dashed var(--color-accent-primary);">
+                <div id="price-preview" style="background:rgba(255,255,255,0.03); padding:10px; border-radius:8px; border:1px dashed var(--color-accent-primary);">
                     <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:var(--color-text-muted);">
                         <span>Distancia GPS: <span id="preview-dist" style="color:var(--color-accent-primary); font-weight:600;">Calculando...</span></span>
                         <span>Total: <span id="preview-total" style="color:var(--color-accent-success); font-weight:700; font-size:1.1rem;">$0</span></span>
                     </div>
                 </div>
 
-                <button class="button button--primary button--block" id="btn-create-order" style="padding:15px; font-size:1rem;">SOLICITAR ENVÍO/VIAJE</button>
+                <button class="button button--primary button--block" id="btn-create-order" style="padding:12px; font-size:0.95rem;">SOLICITAR ENVÍO/VIAJE</button>
             </div>
         </section>
 
