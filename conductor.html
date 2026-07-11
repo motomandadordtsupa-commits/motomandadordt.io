@@ -210,6 +210,15 @@
         </div>
     </div>
 
+    <!-- Modal Interacción Sonido -->
+    <div id="interaction-modal" class="modal hidden" style="z-index: 9999;">
+        <div class="card" style="max-width:400px; padding:2rem; width:100%; text-align:center;">
+            <h2 style="color:var(--color-accent-primary); margin-bottom:15px;">🔔 Activar Alertas</h2>
+            <p style="font-size:0.9rem; color:var(--color-text-muted); margin-bottom:20px;">Presiona continuar para habilitar el sonido de los nuevos viajes.</p>
+            <button onclick="enableSoundAndStart()" class="button button--primary" style="width:100%; padding:15px; font-size:1.1rem;">COMENZAR TURNO</button>
+        </div>
+    </div>
+
     <!-- Modal de Registro Conductor -->
     <div id="driver-register-modal" class="modal hidden">
         <div class="card" style="max-width:450px; padding:2rem; width:100%;">
@@ -355,8 +364,7 @@
                     currentUser.agencia_id = profile.agencia_id;
                     document.getElementById('driver-auth').classList.add('hidden');
                     document.getElementById('driver-register-modal').classList.add('hidden');
-                    document.getElementById('driver-content').classList.remove('hidden');
-                    initConductor();
+                    document.getElementById('interaction-modal').classList.remove('hidden');
                 } else if (profile && profile.role === 'admin') {
                     alert("Estás logueado como Admin. Salí e ingresá con cuenta de conductor.");
                     await sb.auth.signOut();
@@ -370,6 +378,20 @@
                 document.getElementById('driver-content').classList.add('hidden');
                 showLogin();
             }
+        }
+
+        function enableSoundAndStart() {
+            // Reproducir un sonido corto mudo para habilitar el objeto de Audio
+            audioAlerta.volume = 0.01;
+            audioAlerta.play().then(() => {
+                audioAlerta.pause();
+                audioAlerta.currentTime = 0;
+                audioAlerta.volume = 1;
+            }).catch(e => console.log(e));
+
+            document.getElementById('interaction-modal').classList.add('hidden');
+            document.getElementById('driver-content').classList.remove('hidden');
+            initConductor();
         }
 
         async function initConductor() {
@@ -462,18 +484,20 @@
         async function checkActiveOrder() {
             // Incluimos 'pendiente' para detectar si nos asignaron algo mientras no mirábamos
             const activeStates = ['pendiente', 'aceptado', 'en_origen', 'en_viaje', 'en_destino'];
-            const { data } = await sb.from('pedidos')
+            const { data, error } = await sb.from('pedidos')
                 .select('*')
                 .eq('motomandado_id', currentUser.id)
                 .in('estado', activeStates)
-                .maybeSingle();
+                .order('created_at', { ascending: false })
+                .limit(1);
             
-            if (data) {
-                activeOrder = data;
+            if (data && data.length > 0) {
+                const order = data[0];
+                activeOrder = order;
                 
                 // Si está pendiente y asignado a MI, mostrar la alerta de aceptación
-                if (data.estado === 'pendiente') {
-                    mostrarAlertaAsignacion(data);
+                if (order.estado === 'pendiente') {
+                    mostrarAlertaAsignacion(order);
                     return; 
                 }
 
@@ -481,27 +505,27 @@
                 document.getElementById('pool-section').classList.add('hidden');
                 
                 let btnHtml = '';
-                if (data.estado === 'aceptado') {
+                if (activeOrder.estado === 'aceptado') {
                     btnHtml = `<button onclick="updateStatus('en_origen')" style="background:var(--color-accent-primary); width:100%; padding:12px; border-radius:5px; color:white; font-weight:700;">📍 LLEGUÉ AL ORIGEN</button>`;
-                } else if (data.estado === 'en_origen') {
+                } else if (activeOrder.estado === 'en_origen') {
                     btnHtml = `<button onclick="updateStatus('en_viaje')" style="background:var(--color-accent-warning); width:100%; padding:12px; border-radius:5px; color:white; font-weight:700;">🛵 INICIAR VIAJE</button>`;
                 } else {
                     btnHtml = `
                         <div style="display:flex; gap:10px;">
-                            <input type="number" id="order-monto" value="${data.monto || 0}" style="flex:1;">
-                            <button onclick="finalizeOrder('${data.id}')" style="background:var(--color-accent-success); padding:10px; border-radius:5px; color:white; font-weight:700;">✅ FINALIZAR</button>
+                            <input type="number" id="order-monto" value="${activeOrder.monto || 0}" style="flex:1;">
+                            <button onclick="finalizeOrder('${activeOrder.id}')" style="background:var(--color-accent-success); padding:10px; border-radius:5px; color:white; font-weight:700;">✅ FINALIZAR</button>
                         </div>
                     `;
                 }
 
                 document.getElementById('active-order-card').innerHTML = `
                     <div style="margin-bottom:15px;">
-                        <p><strong>Ruta:</strong> ${data.descripcion}</p>
+                        <p><strong>Ruta:</strong> ${activeOrder.descripcion}</p>
                         <p style="font-size:0.8rem; color:var(--color-accent-primary); margin-top:5px;">
-                            📏 ${data.distancia_cuadras || '?'} cuadras | 💵 Precio sugerido: $${data.monto || 0}
+                            📏 ${activeOrder.distancia_cuadras || '?'} cuadras | 💵 Precio sugerido: $${activeOrder.monto || 0}
                         </p>
                         <p style="font-size:0.7rem; color:var(--color-text-muted); margin-top:5px; text-transform:uppercase; font-weight:700;">
-                            Estado actual: <span style="color:white;">${data.estado.replace('_', ' ')}</span>
+                            Estado actual: <span style="color:white;">${activeOrder.estado.replace('_', ' ')}</span>
                         </p>
                     </div>
                     ${btnHtml}

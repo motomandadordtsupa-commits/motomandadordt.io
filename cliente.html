@@ -402,7 +402,7 @@
                     await sb.from('pedidos').update({ estado: 'cancelado' }).eq('id', orderId);
                     showStatusModal("⏰ Tiempo Expirado", "No encontramos conductores disponibles. El pedido se canceló.", "📭");
                     checkActiveOrder();
-                } else if (!o.motomandado_id || (new Date() - new Date(o.created_at)) > 120000) {
+                } else if (!o.motomandado_id) {
                     // Buscar conductor con soporte para nulos (post-zeroize)
                     const { data: next } = await sb.from('PERFILES')
                         .select('id')

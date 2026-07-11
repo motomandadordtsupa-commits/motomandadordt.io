@@ -133,6 +133,15 @@
         </div>
     </div>
 
+    <!-- Modal Interacción Sonido Admin -->
+    <div id="interaction-modal-admin" class="modal hidden" style="z-index: 9999;">
+        <div class="card" style="max-width:400px; padding:2rem; width:100%; text-align:center;">
+            <h2 style="color:var(--color-accent-primary); margin-bottom:15px;">🔔 Activar Alertas</h2>
+            <p style="font-size:0.9rem; color:var(--color-text-muted); margin-bottom:20px;">Presiona continuar para recibir alertas sonoras de nuevos pedidos.</p>
+            <button onclick="enableSoundAndStartAdmin()" class="button button--primary" style="width:100%; padding:15px; font-size:1.1rem;">ENTRAR AL PANEL</button>
+        </div>
+    </div>
+
     <div id="admin-content" class="hidden" style="max-width: 500px; margin: 0 auto; padding: 20px 15px;">
         <div style="text-align:center; margin-bottom: 20px;">
             <h1
@@ -296,6 +305,7 @@
     </div>
     <script>
         let currentUser = null;
+        let adminAudioAlert = new Audio('https://assets.mixkit.co/active_storage/sfx/941/941-preview.mp3');
         const SUPABASE_URL = 'https://aodoaefxnnpgjwcyfixx.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_RRSZspZq5acSI3J_eT4HUg_Txykyu2S';
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -339,14 +349,26 @@
                     }
                     currentUser = session.user;
                     document.getElementById('admin-auth').classList.add('hidden');
-                    document.getElementById('admin-content').classList.remove('hidden');
-                    initDashboard();
+                    document.getElementById('interaction-modal-admin').classList.remove('hidden');
                 } else {
                     alert("ACCESO DENEGADO: No tienes permisos.");
                     await sb.auth.signOut();
                     location.reload();
                 }
             }
+        }
+
+        function enableSoundAndStartAdmin() {
+            adminAudioAlert.volume = 0.01;
+            adminAudioAlert.play().then(() => {
+                adminAudioAlert.pause();
+                adminAudioAlert.currentTime = 0;
+                adminAudioAlert.volume = 1;
+            }).catch(e => console.log(e));
+            
+            document.getElementById('interaction-modal-admin').classList.add('hidden');
+            document.getElementById('admin-content').classList.remove('hidden');
+            initDashboard();
         }
 
         async function initDashboard() {
@@ -605,9 +627,14 @@
                     loadDrivers();
                     loadClients();
                 })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, () => {
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, (payload) => {
                     loadFinance();
                     loadRecentOrders();
+                    
+                    // Si es un pedido nuevo (INSERT) o un pedido que pasa a pendiente
+                    if (payload.eventType === 'INSERT' || (payload.eventType === 'UPDATE' && payload.new.estado === 'pendiente' && payload.old.estado !== 'pendiente')) {
+                        adminAudioAlert.play().catch(e => console.log(e));
+                    }
                 })
                 .subscribe();
         }
