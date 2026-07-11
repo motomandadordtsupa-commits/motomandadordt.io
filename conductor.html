@@ -388,6 +388,13 @@
                 audioAlerta.currentTime = 0;
                 audioAlerta.volume = 1;
             }).catch(e => console.log(e));
+            
+            audioChat.volume = 0.01;
+            audioChat.play().then(() => {
+                audioChat.pause();
+                audioChat.currentTime = 0;
+                audioChat.volume = 1;
+            }).catch(e => console.log(e));
 
             document.getElementById('interaction-modal').classList.add('hidden');
             document.getElementById('driver-content').classList.remove('hidden');
@@ -677,6 +684,8 @@
         }
 
         // CHAT
+        const audioChat = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
+
         async function loadMessages() {
             if(!activeOrder) return;
             const { data } = await sb.from('mensajes').select('*').eq('pedido_id', activeOrder.id).order('created_at', { ascending: true });
@@ -712,8 +721,11 @@
                     schema: 'public', 
                     table: 'mensajes', 
                     filter: `pedido_id=eq.${activeOrder.id}` 
-                }, () => {
+                }, (payload) => {
                     loadMessages();
+                    if (payload.new && payload.new.emisor_id !== currentUser.id) {
+                        audioChat.play().catch(e => console.log(e));
+                    }
                 })
                 .subscribe((status) => {
                     if (status === 'SUBSCRIBED') console.log("Canal de Chat Activo:", channelName);

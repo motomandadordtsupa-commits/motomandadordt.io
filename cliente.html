@@ -140,6 +140,15 @@
         </div>
     </div>
 
+    <!-- Modal Interacción Sonido Cliente -->
+    <div id="interaction-modal-client" class="modal hidden" style="z-index: 9999;">
+        <div class="card" style="max-width:400px; padding:2rem; width:100%; text-align:center;">
+            <h2 style="color:var(--color-accent-primary); margin-bottom:15px;">🔔 Notificaciones</h2>
+            <p style="font-size:0.9rem; color:var(--color-text-muted); margin-bottom:20px;">Presiona continuar para habilitar las alertas y sonidos del chat.</p>
+            <button onclick="enableClientSound()" class="button button--primary" style="width:100%; padding:15px; font-size:1.1rem;">ENTRAR A LA APP</button>
+        </div>
+    </div>
+
     <script>
         const SUPABASE_URL = 'https://aodoaefxnnpgjwcyfixx.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_RRSZspZq5acSI3J_eT4HUg_Txykyu2S';
@@ -157,6 +166,8 @@
 
         let map, markerOrigen, markerDestino;
         let mapInitialized = false;
+        
+        const audioChat = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
 
         // CONFIG & AUTH
         async function loadConfig() {
@@ -197,9 +208,21 @@
 
                 document.getElementById('auth-modal').classList.add('hidden');
                 document.getElementById('client-register-modal').classList.add('hidden');
-                await checkActiveOrder();
-                subscribeRealtime();
+                document.getElementById('interaction-modal-client').classList.remove('hidden');
             }
+        }
+
+        function enableClientSound() {
+            audioChat.volume = 0.01;
+            audioChat.play().then(() => {
+                audioChat.pause();
+                audioChat.currentTime = 0;
+                audioChat.volume = 1;
+            }).catch(e => console.log(e));
+            
+            document.getElementById('interaction-modal-client').classList.add('hidden');
+            checkActiveOrder();
+            subscribeRealtime();
         }
 
         // LÓGICA DEL MAPA
@@ -404,15 +427,27 @@
                     checkActiveOrder();
                 } else if (!o.motomandado_id) {
                     // Buscar conductor con soporte para nulos (post-zeroize)
-                    const { data: next } = await sb.from('PERFILES')
+                    const { data: drivers } = await sb.from('PERFILES')
                         .select('id')
                         .eq('role', 'repartidor')
                         .eq('esta_activo', true)
-                        .order('ultima_vez_libre', { ascending: true, nullsFirst: true })
-                        .limit(1);
+                        .order('ultima_vez_libre', { ascending: true, nullsFirst: true });
                     
-                    if (next && next.length > 0) {
-                        await sb.from('pedidos').update({ motomandado_id: next[0].id }).eq('id', orderId);
+                    if (drivers && drivers.length > 0) {
+                        for (let d of drivers) {
+                            // Verificar que no tenga un viaje activo
+                            const { data: activeOrders } = await sb.from('pedidos')
+                                .select('id')
+                                .eq('motomandado_id', d.id)
+                                .in('estado', ['pendiente', 'aceptado', 'en_origen', 'en_viaje', 'en_destino'])
+                                .limit(1);
+                                
+                            if (!activeOrders || activeOrders.length === 0) {
+                                // Conductor libre, asignar
+                                await sb.from('pedidos').update({ motomandado_id: d.id }).eq('id', orderId);
+                                break;
+                            }
+                        }
                     }
                 }
             }, 10000);
@@ -615,8 +650,11 @@
                     schema: 'public', 
                     table: 'mensajes', 
                     filter: `pedido_id=eq.${pedidoId}` 
-                }, () => {
+                }, (payload) => {
                     loadMessages();
+                    if (payload.new && payload.new.emisor_id !== currentUser.id) {
+                        audioChat.play().catch(e => console.log("Audio chat bloqueado:", e));
+                    }
                 })
                 .subscribe((status) => {
                     if (status === 'SUBSCRIBED') console.log("Canal de Chat Activo:", channelName);
