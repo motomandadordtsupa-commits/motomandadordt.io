@@ -153,10 +153,10 @@
     <div id="update-modal" class="modal hidden" style="z-index: 10000; background: rgba(0,0,0,0.95);">
         <div class="card" style="max-width:400px; padding:2rem; width:100%; text-align:center;">
             <h2 style="color:var(--color-accent-primary); margin-bottom:15px;">🚀 Actualización Requerida</h2>
-            <p style="font-size:0.9rem; color:var(--color-text-muted); margin-bottom:20px;">Hemos lanzado una actualización obligatoria para el APK (Versión 1.1) que soluciona los problemas de desconexión en segundo plano.</p>
+            <p style="font-size:0.9rem; color:var(--color-text-muted); margin-bottom:20px;">Hemos lanzado una actualización obligatoria para el APK.</p>
             <p style="font-size:0.8rem; color:#ff4d4d; margin-bottom:20px;">Tu versión actual es obsoleta y ya no puede conectarse.</p>
-            <!-- REEMPLAZA ESTE LINK CON TU GITHUB REAL -->
-            <button onclick="window.location.href = 'https://github.com/saultula81/motomandado-cliente-vilaguay/releases/download/v1.0.1/motomandados-villaguay-clientes.apk'" class="button button--primary" style="width:100%; padding:15px; font-size:1.1rem; background-color: #2ea44f;">DESCARGAR NUEVO APK</button>
+            
+            <button onclick="window.location.href = 'https://github.com/saultula81/motomandado-cliente-vilaguay/releases/download/v1.2/motomandados-villaguay-clientesv3.apk'" class="button button--primary" style="width:100%; padding:15px; font-size:1.1rem; background-color: #2ea44f;">DESCARGAR NUEVO APK</button>
         </div>
     </div>
 
@@ -165,7 +165,7 @@
         const urlParamsUpdate = new URLSearchParams(window.location.search);
         const currentApkVersion = parseInt(urlParamsUpdate.get('apk_version')) || 1;
         
-        if (currentApkVersion < LATEST_APK_VERSION && window.location.hostname.includes('vercel.app')) {
+        if (currentApkVersion < LATEST_APK_VERSION) {
             document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById('update-modal').classList.remove('hidden');
             });
